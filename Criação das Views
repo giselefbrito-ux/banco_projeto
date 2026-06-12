@@ -1,0 +1,15 @@
+CREATE VIEW v_itens_de_cada_doacao AS 
+
+SELECT d.id_doacao AS "código_da_doação",
+    d.status_doacao AS "status_da_doação",
+    d.data_doacao AS "data_da_doação",
+    p.nome_produto AS item_doado,
+    i.quantidade AS quantidade_de_itens,
+    l.id_lote AS "código_do_lote",
+    l.data_validade AS validade_do_lote
+   FROM (((doacao d
+     JOIN item_doacao i ON ((d.id_doacao = i.id_doacao)))
+     JOIN lote l ON ((i.id_lote = l.id_lote)))
+     JOIN produto p ON ((l.id_produto_lote = p.id_produto)));
+
+
