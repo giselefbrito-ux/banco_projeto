@@ -1,17 +1,23 @@
 # 🏦🎲 Projeto Final de Banco de Dados - Sistema de Gestão de Doações e Estoque de Alimentos
 <p align="justify">
-&nbsp;&nbsp;&nbsp Este é o projeto final desenvolvido para disciplina de Banco de dados, cujo o objetivo é modelar e implementar um sitema para gerenciamento de alimentos doados, controle de estoque e distribuição.
+&emsp;&emsp;&emsp;&emsp; O presente trabalho consiste no desenvolvimento de um sistema de gestão de doações e controle de estoque de alimentos, elaborado como projeto final da disciplina de Banco de Dados. O objetivo principal é modelar e implementar uma base de dados capaz de gerenciar informações relacionadas ao recebimento, armazenamento e distribuição de alimentos provenientes de doações.
 </p>
 <p align="justify">
-&nbsp;&nbsp;&nbsp O sistema tem inspiração no refeitório da Escola de Aplicação localizada na Universidade de Pernambuco campus Garanhuns. Portanto, ele visa auxiliar o gerenciamento de produtos alimentícios em universidades, escolas públicas e outras instituições. Algumas de suas funcionalidades são doações a serem recebidas pela instituição, permitindo o controle de lotes, validade, estoque, movimentações e auditorias, além do cadastro de doadores e instituições beneficiadas.
+&emsp;&emsp;&emsp;&emsp; O sistema foi inspirado no contexto do refeitório da Escola de Aplicação da Universidade de Pernambuco (UPE), Campus Garanhuns, buscando oferecer uma solução que possa ser aplicada em universidades, escolas públicas e demais instituições que realizam o gerenciamento de alimentos doados. Dessa forma, a proposta contempla funcionalidades relacionadas ao controle de lotes, validade dos produtos, estoque, movimentações e auditorias, além do cadastro de doadores e instituições beneficiadas.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; A implementação do projeto visa proporcionar maior organização e rastreabilidade dos alimentos recebidos, contribuindo para a redução do desperdício e para a melhoria da gestão dos recursos alimentícios disponibilizados às instituições atendidas.
 </p>
 
+
 # 📄 Objetivo do Projeto
+## 1. Objetivo Geral
 <p align="justify">
-&nbsp;&nbsp;&nbsp O projeto tem como objetivo desenvolver uma base de dados capaz de armazenar e gerenciar informações relacionadas à doação e distribuição de alimentos, promovendo maior controle, transparência e rastreabilidade dos produtos recebidos e distribuídos.
+&emsp;&emsp;&emsp;&emsp; Desenvolver uma base de dados capaz de armazenar e gerenciar informações relacionadas à doação e distribuição de alimentos, promovendo maior controle, transparência e rastreabilidade dos produtos recebidos e distribuídos. 
 </p>
 <p align="justify">
-Entre as principais funcionalidades contempladas estão:
+
+##	2. Objetivos Específicos 
 </p>
 
 * Registro de doações;
@@ -23,18 +29,26 @@ Entre as principais funcionalidades contempladas estão:
 * Auditoria das operações realizadas no sistema;
 * Gerenciamento das coletas e entregas das doações.
 
+# 🔧 FERRAMENTAS
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Para o desenvolvimento do projeto foram utilizadas ferramentas voltadas à modelagem, implementação, documentação e versionamento do banco de dados. Essas tecnologias auxiliaram na construção dos modelos conceitual e lógico, na implementação da base de dados e no desenvolvimento da aplicação utilizada para interação com o sistema.
+</p>
+<p align="justify">
+	As principais ferramentas utilizadas foram:
+</p>
+
 # 🌎 Minimundo
 <p align="justify">
-&nbsp;&nbsp;&nbsp O sistema gerencia alimentos provenientes de doações realizadas por pessoas físicas, empresas e mercados parceiros.
+&emsp;&emsp;&emsp;&emsp; O sistema gerencia alimentos provenientes de doações realizadas por pessoas físicas, empresas e mercados parceiros.
 </p>
 <p align="justify">
-&nbsp;&nbsp;&nbsp Os produtos recebidos são cadastrados e organizados em categorias alimentícias. Cada produto pode possuir um ou mais lotes, contendo informações sobre fabricação, validade e quantidade disponível.
+&emsp;&emsp;&emsp;&emsp; Os produtos recebidos são cadastrados e organizados em categorias alimentícias. Cada produto pode possuir um ou mais lotes, contendo informações sobre fabricação, validade e quantidade disponível.
 </p>
 <p align="justify">
-&nbsp;&nbsp;&nbsp Os alimentos são armazenados em estoque e podem ser destinados a instituições receptoras previamente cadastradas e validadas.
+&emsp;&emsp;&emsp;&emsp; Os alimentos são armazenados em estoque e podem ser destinados a instituições receptoras previamente cadastradas e validadas.
 </p>
 <p align="justify">
-&nbsp;&nbsp;&nbsp Todas as movimentações realizadas sobre produtos e lotes são registradas, permitindo rastreabilidade completa. Além disso, o sistema gera alertas para produtos próximos ao vencimento, contribuindo para a redução do desperdício.
+&emsp;&emsp;&emsp;&emsp; Todas as movimentações realizadas sobre produtos e lotes são registradas, permitindo rastreabilidade completa. Além disso, o sistema gera alertas para produtos próximos ao vencimento, contribuindo para a redução do desperdício.
 </p>
 <p align="justify">
-&nbsp;&nbsp;&nbsp O sistema também registra solicitações de doação realizadas pelas instituições receptoras e controla as etapas de coleta e entrega dos alimentos.
+&emsp;&emsp;&emsp;&emsp; O sistema também registra solicitações de doação realizadas pelas instituições receptoras e controla as etapas de coleta e entrega dos alimentos.
