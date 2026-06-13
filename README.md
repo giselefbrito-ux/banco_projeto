@@ -36,6 +36,12 @@
 <p align="justify">
 	As principais ferramentas utilizadas foram:
 </p>
+* ERDPlus — utilizado na elaboração do Modelo Entidade-Relacionamento (MER) e do modelo lógico do banco de dados.
+* Supabase  — plataforma utilizada para implementação e gerenciamento do banco de dados PostgreSQL, permitindo a criação de tabelas, views, procedures, triggers e consultas SQL.
+* Python — linguagem de programação utilizada para integração da aplicação com o banco de dados.
+* Streamlit — framework utilizado para o desenvolvimento da interface da aplicação, permitindo a visualização e manipulação dos dados armazenados.
+* GitHub — utilizado para versionamento, armazenamento e compartilhamento dos arquivos do projeto.
+* ChatGPT — utilizado como ferramenta de apoio para geração de dados de teste e povoamento inicial das tabelas, auxiliando na criação de registros fictícios consistentes para validação e demonstração das funcionalidades implementadas no sistema.00
 
 # 🌎 Minimundo
 <p align="justify">
