@@ -14,353 +14,362 @@ st.set_page_config(
     page_title="SafeFood",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={"About": "SafeFood - Sistema de Controle de Doações"}
+    menu_items={"About": "SafeFood - Sistema de Controle de Doações"},
 )
 
-# CSS Customizado para melhor design
-st.markdown("""
+# FUNÇÕES AUXILIARES
+
+def buscar(tabela, ordem=None):
+    try:
+        consulta = supabase.table(tabela).select("*")
+        if ordem:
+            consulta = consulta.order(ordem)
+        return consulta.execute().data or []
+    except Exception as erro:
+        st.error(f"Erro ao carregar {tabela}: {erro}")
+        return []
+
+
+def mostrar_tabela(dados, msg_vazio="Nenhum registro encontrado."):
+    if dados:
+        st.dataframe(pd.DataFrame(dados), use_container_width=True, hide_index=True)
+    else:
+        st.info(msg_vazio)
+
+
+def limpar_telefone(valor):
+    return re.sub(r"[^0-9]", "", valor or "")
+
+
+def validar_telefone(valor):
+    return valor.isdigit() and len(valor) in (10, 11)
+
+
+def opcoes_por_id(dados, id_coluna, texto_coluna=None):
+    opcoes = {}
+    for item in dados:
+        rotulo = str(item.get(id_coluna))
+        if texto_coluna and item.get(texto_coluna):
+            rotulo = f"{item.get(id_coluna)} - {item.get(texto_coluna)}"
+        opcoes[rotulo] = item.get(id_coluna)
+    return opcoes
+
+
+STATUS_DOACAO = ["Pendente", "Coletada", "Concluida"]
+STATUS_SOLICITACAO = ["Aberta", "Em analise", "Aprovada"]
+STATUS_COLETA = ["PENDENTE", "CONCLUÍDA"]
+STATUS_ALERTA = ["MONITORAMENTO", "ATENCAO", "URGENTE"]
+STATUS_INSTITUICAO = ["Ativa", "Inativa"]
+TIPOS_TELEFONE = ["principal", "whatsapp", "comercial", "residencial"]
+
+
+# ESTILO
+
+st.markdown(
+    """
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-    }
-
-    .main {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        min-height: 100vh;
-    }
-
-    .css-1d391kg {
-        background-color: white;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-
-    .card-container {
-        background-color: black;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-
-    /* Apenas rótulos/legendas dentro do card devem ser brancos; valores (h2) mantêm suas cores inline */
-    .card-container p,
-    .stMetric p {
-        color: white !important;
-        margin: 0;
-        opacity: 0.95;
-    }
-
-    .stMetric {
-        background-color: black !important;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-    }
-
-    .stMetric,
-    .card-container {
-        padding: 20px;
-        margin-bottom: 16px;
-    }
+.card-container {
+    background-color: #111827;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+.card-container p { color: white !important; margin: 0; opacity: 0.95; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# Header com estilo
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.title("🍎 SafeFood")
-    st.caption("🌱 Sistema de Controle de Doações Alimentares")
-
+st.title("🍎 SafeFood")
+st.caption("Sistema de Controle de Doações Alimentares")
 st.divider()
 
-
-# Sidebar com design melhorado
 with st.sidebar:
-    st.markdown("---")
-    st.markdown("<h3 style='color: #27ae60; text-align: center;'>📱 NAVEGAÇÃO</h3>", unsafe_allow_html=True)
-    st.markdown("---")
-    
+    st.markdown("### 📱 Navegação")
     menu = st.selectbox(
         "Selecione uma opção:",
-        ["📊 Dashboard", "🍚 Produtos", "📦 Lotes", "🏬 Estoque", "⚠️ Alertas", "📑 Auditorias"],
-        index=0
+        [
+            "📊 Dashboard",
+            "👤 Usuários e Telefones",
+            "🍚 Produtos",
+            "📦 Lotes",
+            "🎁 Doações e Itens",
+            "🏬 Estoque e Movimentações",
+            "⚠️ Alertas",
+            "📑 Auditorias",
+            "👁️ Views",
+        ],
     )
-    
-    st.markdown("---")
-    st.markdown("<p style='text-align: center; color: #7f8c8d; font-size: 0.8em;'>SafeFood v1.0<br>Sistema de Controle Alimentar</p>", unsafe_allow_html=True)
+
 
 if "Dashboard" in menu:
-    st.header("📊 Dashboard")
-    
-    try:
-        produtos = supabase.table("produto").select("*").execute().data
-        lotes = supabase.table("lote").select("*").execute().data
-        alertas = supabase.table("alerta_validade").select("*").execute().data
-        estoque = supabase.table("estoque").select("*").execute().data
+    produtos = buscar("produto")
+    lotes = buscar("lote")
+    estoque = buscar("estoque")
+    alertas = buscar("alerta_validade")
+    doacoes = buscar("doacao")
 
-        # Cards com estatísticas em grid
-        col1, col2, col3, col4 = st.columns(4, gap="medium")
-
-        with col1:
-            st.markdown("""
-                <div class='card-container' style='border-left-color: #3498db;'>
-                    <p style='color: #7f8c8d; margin: 0;'>Total de Produtos</p>
-                    <h2 style='color: #3498db; font-size: 2.5em; margin: 10px 0 0 0; border: none;'>{}</h2>
+    col1, col2, col3, col4 = st.columns(4)
+    cards = [
+        ("Produtos", len(produtos), "#3498db"),
+        ("Lotes", len(lotes), "#e74c3c"),
+        ("Estoque", len(estoque), "#2ecc71"),
+        ("Doações", len(doacoes), "#f39c12"),
+    ]
+    for col, (titulo, valor, cor) in zip([col1, col2, col3, col4], cards):
+        with col:
+            st.markdown(
+                f"""
+                <div class='card-container'>
+                    <p>{titulo}</p>
+                    <h2 style='color:{cor}; margin: 5px 0;'>{valor}</h2>
                 </div>
-            """.format(len(produtos)), unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True,
+            )
 
-        with col2:
-            st.markdown("""
-                <div class='card-container' style='border-left-color: #e74c3c;'>
-                    <p style='color: #7f8c8d; margin: 0;'>Lotes Registrados</p>
-                    <h2 style='color: #e74c3c; font-size: 2.5em; margin: 10px 0 0 0; border: none;'>{}</h2>
-                </div>
-            """.format(len(lotes)), unsafe_allow_html=True)
+    st.subheader("Últimos lotes")
+    mostrar_tabela(lotes[:5])
 
-        with col3:
-            st.markdown("""
-                <div class='card-container' style='border-left-color: #f39c12;'>
-                    <p style='color: #7f8c8d; margin: 0;'>Alertas Ativos</p>
-                    <h2 style='color: #f39c12; font-size: 2.5em; margin: 10px 0 0 0; border: none;'>{}</h2>
-                </div>
-            """.format(len(alertas)), unsafe_allow_html=True)
 
-        with col4:
-            st.markdown("""
-                <div class='card-container' style='border-left-color: #2ecc71;'>
-                    <p style='color: #7f8c8d; margin: 0;'>Itens em Estoque</p>
-                    <h2 style='color: #2ecc71; font-size: 2.5em; margin: 10px 0 0 0; border: none;'>{}</h2>
-                </div>
-            """.format(len(estoque)), unsafe_allow_html=True)
 
-        st.markdown("---")
+elif "Usuários" in menu:
+    st.header("👤 Usuários e Telefones")
 
-        # Informações rápidas
-        col1, col2 = st.columns(2, gap="large")
-        
-        with col1:
-            st.subheader("📋 Últimos Lotes Adicionados")
-            if lotes:
-                lotes_df = pd.DataFrame(lotes)
-                if not lotes_df.empty:
-                    if 'id' in lotes_df.columns:
-                        lotes_df = lotes_df.sort_values('id', ascending=False)
-                    elif 'data_entrada' in lotes_df.columns:
-                        lotes_df['data_entrada'] = pd.to_datetime(lotes_df['data_entrada'], errors='coerce')
-                        lotes_df = lotes_df.sort_values('data_entrada', ascending=False)
-                    else:
-                        lotes_df = lotes_df.head(5)
+    usuarios = buscar("usuario", "id_usuario")
+    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
 
-                    st.dataframe(lotes_df.head(5), use_container_width=True, hide_index=True)
-                else:
-                    st.info("Nenhum lote registrado ainda.")
-            else:
-                st.info("Nenhum lote registrado ainda.")
+    aba1, aba2 = st.tabs(["Usuários", "Telefones"])
 
-        with col2:
-            st.subheader("⚠️ Alertas Recentes")
-            if alertas:
-                alertas_df = pd.DataFrame(alertas)
-                if not alertas_df.empty:
-                    if 'id' in alertas_df.columns:
-                        alertas_df = alertas_df.sort_values('id', ascending=False)
-                    elif 'data_validade' in alertas_df.columns:
-                        alertas_df['data_validade'] = pd.to_datetime(alertas_df['data_validade'], errors='coerce')
-                        alertas_df = alertas_df.sort_values('data_validade', ascending=False)
-                    st.dataframe(alertas_df.head(5), use_container_width=True, hide_index=True)
-                else:
-                    st.success("✓ Nenhum alerta de validade ativo!")
-            else:
-                st.success("✓ Nenhum alerta de validade ativo!")
-                
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {e}")
+    with aba1:
+        st.subheader("Lista de usuários")
+        mostrar_tabela(usuarios)
 
-elif "Produtos" in menu:
-    st.header("Gerenciamento de Produtos")
-    
-    col1, col2 = st.columns([2, 1], gap="large")
-    
-    with col1:
-        st.subheader("📝 Cadastrar Novo Produto")
-        with st.form("form_produto", border=True):
-            nome = st.text_input("Nome do Produto", placeholder="Ex: Arroz, Feijão...")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                id_usuario = st.number_input("ID do Usuário", min_value=1)
-            with col_b:
-                id_categoria = st.number_input("ID da Categoria", min_value=1)
-            
-            enviar = st.form_submit_button("✅ Cadastrar Produto", use_container_width=True)
+    with aba2:
+        st.subheader("Cadastrar telefone do usuário")
+        with st.form("form_telefone"):
+            usuario_rotulo = st.selectbox("Usuário", list(op_usuarios.keys())) if op_usuarios else None
+            telefone_digitado = st.text_input("Telefone", placeholder="Ex: (87)99999-1111")
+            tipo_telefone = st.selectbox("Tipo", TIPOS_TELEFONE)
+            enviar = st.form_submit_button("Cadastrar telefone")
 
             if enviar:
-                if nome:
-                    try:
-                        supabase.table("produto").insert({
-                            "nome_produto": nome,
-                            "id_usuario": id_usuario,
-                            "id_categoria_produto": id_categoria
-                        }).execute()
-                        st.success("✓ Produto cadastrado com sucesso!", icon="✅")
-                    except Exception as e:
-                        st.error(f"Erro ao cadastrar: {e}")
+                telefone = limpar_telefone(telefone_digitado)
+                if not usuario_rotulo:
+                    st.warning("Cadastre um usuário antes de inserir telefone.")
+                elif not validar_telefone(telefone):
+                    st.error("Telefone inválido. Use apenas DDD + número, com 10 ou 11 dígitos.")
                 else:
-                    st.warning("⚠️ Por favor, preencha o nome do produto!")
+                    try:
+                        supabase.table("telefone_usuario").insert(
+                            {
+                                "id_usuario": op_usuarios[usuario_rotulo],
+                                "telefone": telefone,
+                                "tipo_telefone": tipo_telefone,
+                            }
+                        ).execute()
+                        st.success("Telefone cadastrado com sucesso.")
+                    except Exception as erro:
+                        st.error(f"Erro ao cadastrar telefone: {erro}")
 
-    with col2:
-        st.info("ℹ️ **Dica**: Preencha todos os campos com informações corretas para manter o controle organizado.")
+        st.subheader("Telefones cadastrados")
+        mostrar_tabela(buscar("telefone_usuario", "id_telefone"))
 
-    st.markdown("---")
-    st.subheader("📊 Lista de Produtos")
-    
-    try:
-        dados = supabase.table("produto").select("*").execute().data
-        if dados:
-            df = pd.DataFrame(dados)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nenhum produto cadastrado ainda. Comece adicionando um!")
-    except Exception as e:
-        st.error(f"Erro ao carregar produtos: {e}")
+elif "Produtos" in menu:
+    st.header("🍚 Gerenciamento de Produtos")
+
+    usuarios = buscar("usuario", "id_usuario")
+    categorias = buscar("produto_categoria", "id_categoria")
+    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
+    op_categorias = opcoes_por_id(categorias, "id_categoria", "nome_categoria")
+
+    with st.form("form_produto"):
+        nome = st.text_input("Nome do produto")
+        usuario_rotulo = st.selectbox("Usuário responsável", list(op_usuarios.keys())) if op_usuarios else None
+        categoria_rotulo = st.selectbox("Categoria", list(op_categorias.keys())) if op_categorias else None
+        enviar = st.form_submit_button("Cadastrar produto")
+
+        if enviar:
+            if not nome or not usuario_rotulo or not categoria_rotulo:
+                st.warning("Preencha todos os campos.")
+            else:
+                try:
+                    supabase.table("produto").insert(
+                        {
+                            "nome_produto": nome,
+                            "id_usuario": op_usuarios[usuario_rotulo],
+                            "id_categoria_produto": op_categorias[categoria_rotulo],
+                        }
+                    ).execute()
+                    st.success("Produto cadastrado com sucesso.")
+                except Exception as erro:
+                    st.error(f"Erro ao cadastrar produto: {erro}")
+
+    st.subheader("Produtos cadastrados")
+    mostrar_tabela(buscar("produto", "id_produto"))
+
 
 elif "Lotes" in menu:
     st.header("📦 Gerenciamento de Lotes")
-    
-    col1, col2 = st.columns([2, 1], gap="large")
-    
-    with col1:
-        st.subheader("➕ Registrar Novo Lote")
-        with st.form("form_lote", border=True):
-            id_produto = st.number_input("ID do Produto", min_value=1, help="Selecione o produto para este lote")
-            quantidade = st.number_input("Quantidade", min_value=1, help="Quantidade de itens neste lote")
-            
-            col_a, col_b, col_c = st.columns(3)
-            with col_a:
-                data_fabricacao = st.date_input("📅 Data de Fabricação")
-            with col_b:
-                data_entrada = st.date_input("📅 Data de Entrada")
-            with col_c:
-                data_validade = st.date_input("📅 Data de Validade")
-            
-            enviar = st.form_submit_button("✅ Registrar Lote", use_container_width=True)
+
+    produtos = buscar("produto", "id_produto")
+    op_produtos = opcoes_por_id(produtos, "id_produto", "nome_produto")
+
+    with st.form("form_lote"):
+        produto_rotulo = st.selectbox("Produto", list(op_produtos.keys())) if op_produtos else None
+        quantidade = st.number_input("Quantidade", min_value=1, step=1)
+        data_fabricacao = st.date_input("Data de fabricação")
+        data_entrada = st.date_input("Data de entrada")
+        data_validade = st.date_input("Data de validade")
+        enviar = st.form_submit_button("Registrar lote")
+
+        if enviar:
+            if not produto_rotulo:
+                st.warning("Cadastre um produto antes de inserir lote.")
+            elif data_fabricacao > data_entrada:
+                st.error("A data de fabricação não pode ser posterior à data de entrada.")
+            elif data_entrada > data_validade:
+                st.error("A data de entrada não pode ser posterior à validade.")
+            else:
+                try:
+                    supabase.table("lote").insert(
+                        {
+                            "quantidade": int(quantidade),
+                            "data_validade": str(data_validade),
+                            "data_entrada": str(data_entrada),
+                            "data_fabricacao": str(data_fabricacao),
+                            "id_produto_lote": op_produtos[produto_rotulo],
+                        }
+                    ).execute()
+                    st.success("Lote registrado. As triggers de estoque e validade serão executadas pelo banco.")
+                except Exception as erro:
+                    st.error(f"Erro ao registrar lote: {erro}")
+
+    st.subheader("Lotes registrados")
+    mostrar_tabela(buscar("lote", "id_lote"))
+
+elif "Doações" in menu:
+    st.header("🎁 Doações e Itens")
+
+    usuarios = buscar("usuario", "id_usuario")
+    doacoes = buscar("doacao", "id_doacao")
+    lotes = buscar("lote", "id_lote")
+    estoque = buscar("estoque", "id_estoque")
+
+    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
+    op_doacoes = opcoes_por_id(doacoes, "id_doacao", "descricao")
+    op_lotes = opcoes_por_id(lotes, "id_lote")
+
+    aba1, aba2, aba3 = st.tabs(["Cadastrar doação", "Adicionar item", "Listagem"])
+
+    with aba1:
+        with st.form("form_doacao"):
+            descricao = st.text_area("Descrição")
+            data_doacao = st.date_input("Data da doação")
+            status_doacao = st.selectbox("Status da doação", STATUS_DOACAO)
+            receptor_rotulo = st.selectbox("Usuário receptor", list(op_usuarios.keys())) if op_usuarios else None
+            enviar = st.form_submit_button("Cadastrar doação")
 
             if enviar:
-                try:
-                    supabase.table("lote").insert({
-                        "quantidade": quantidade,
-                        "data_validade": str(data_validade),
-                        "data_entrada": str(data_entrada),
-                        "data_fabricacao": str(data_fabricacao),
-                        "id_produto_lote": id_produto
-                    }).execute()
-                    st.success("✓ Lote registrado! Gatilho de estoque e validade ativado.", icon="📦")
-                except Exception as e:
-                    st.error(f"Erro ao registrar: {e}")
+                if not descricao or not receptor_rotulo:
+                    st.warning("Preencha todos os campos.")
+                else:
+                    try:
+                        supabase.table("doacao").insert(
+                            {
+                                "data_doacao": str(data_doacao),
+                                "status_doacao": status_doacao,
+                                "descricao": descricao,
+                                "id_usuario_receptor": op_usuarios[receptor_rotulo],
+                            }
+                        ).execute()
+                        st.success("Doação cadastrada.")
+                    except Exception as erro:
+                        st.error(f"Erro ao cadastrar doação: {erro}")
 
-    with col2:
-        st.info("ℹ️ **Importante**: As datas devem estar na sequência correta: Fabricação → Entrada → Validade.")
+    with aba2:
+        with st.form("form_item_doacao"):
+            doacao_rotulo = st.selectbox("Doação", list(op_doacoes.keys())) if op_doacoes else None
+            lote_rotulo = st.selectbox("Lote", list(op_lotes.keys())) if op_lotes else None
+            quantidade = st.number_input("Quantidade doada", min_value=1, step=1)
+            enviar = st.form_submit_button("Adicionar item à doação")
 
-    st.markdown("---")
-    st.subheader("📋 Lotes Registrados")
-    
-    try:
-        dados = supabase.table("lote").select("*").execute().data
-        if dados:
-            df = pd.DataFrame(dados)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nenhum lote registrado. Comece adicionando um novo!")
-    except Exception as e:
-        st.error(f"Erro ao carregar lotes: {e}")
+            if enviar:
+                if not doacao_rotulo or not lote_rotulo:
+                    st.warning("É necessário ter uma doação e um lote cadastrados.")
+                else:
+                    id_lote = op_lotes[lote_rotulo]
+                    estoque_lote = next((e for e in estoque if e.get("id_lote") == id_lote), None)
+                    qtd_atual = int(estoque_lote.get("quantidade_atual", 0)) if estoque_lote else 0
+
+                    if quantidade > qtd_atual:
+                        st.error(f"Quantidade insuficiente no estoque. Disponível: {qtd_atual}")
+                    else:
+                        try:
+                            supabase.table("item_doacao").insert(
+                                {
+                                    "quantidade": int(quantidade),
+                                    "id_doacao": op_doacoes[doacao_rotulo],
+                                    "id_lote": id_lote,
+                                }
+                            ).execute()
+                            st.success("Item adicionado. A trigger registra SAIDA e atualiza o estoque.")
+                        except Exception as erro:
+                            st.error(f"Erro ao adicionar item: {erro}")
+
+    with aba3:
+        st.subheader("Doações")
+        mostrar_tabela(doacoes)
+        st.subheader("Itens de doação")
+        mostrar_tabela(buscar("item_doacao", "id_item_doacao"))
 
 elif "Estoque" in menu:
-    st.header("🏬 Controle de Estoque")
-    
-    try:
-        dados = supabase.table("estoque").select("*").execute().data
-        if dados:
-            df = pd.DataFrame(dados)
-            
-            # Resumo rápido
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown(f"""
-                    <div class='card-container' style='border-left-color: #3498db;'>
-                        <p style='color: #7f8c8d; margin: 0;'>Total de Itens</p>
-                        <h2 style='color: #3498db; font-size: 2em; margin: 10px 0 0 0; border: none;'>{len(df)}</h2>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            st.subheader("📊 Detalhes do Estoque")
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("Estoque vazio. Comece adicionando produtos e lotes!")
-    except Exception as e:
-        st.error(f"Erro ao carregar estoque: {e}")
+    st.header("🏬 Estoque e Movimentações")
+    st.info("O estoque é controlado pelas triggers do banco. Use lotes e itens de doação para gerar entradas e saídas.")
+
+    aba1, aba2 = st.tabs(["Estoque", "Movimentações"])
+    with aba1:
+        mostrar_tabela(buscar("estoque", "id_estoque"))
+    with aba2:
+        mostrar_tabela(buscar("movimentacao_estoque", "id_movimentacao"))
+
 
 elif "Alertas" in menu:
     st.header("⚠️ Alertas de Validade")
-    
-    try:
-        dados = supabase.table("alerta_validade").select("*").execute().data
-        
-        if dados:
-            df = pd.DataFrame(dados)
-            
-            # Cards de resumo
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"""
-                    <div class='card-container' style='border-left-color: #e74c3c;'>
-                        <p style='color: #7f8c8d; margin: 0;'>⚠️ Alertas Críticos</p>
-                        <h2 style='color: #e74c3c; font-size: 2em; margin: 10px 0 0 0; border: none;'>{len(df)}</h2>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            st.subheader("📋 Lista de Alertas")
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.success("✓ Nenhum alerta de validade no momento. Sistema operacional!")
-    except Exception as e:
-        st.error(f"Erro ao carregar alertas: {e}")
+    dados = buscar("alerta_validade", "id_alerta")
+    if dados:
+        filtro = st.multiselect("Filtrar por status", STATUS_ALERTA, default=STATUS_ALERTA)
+        filtrado = [d for d in dados if d.get("status_alerta") in filtro]
+        mostrar_tabela(filtrado)
+    else:
+        st.success("Nenhum alerta de validade encontrado.")
+
 
 elif "Auditorias" in menu:
-    st.header("📑 Sistema de Auditorias")
-    
-    st.subheader("Selecione o tipo de auditoria:")
-    aba = st.segmented_control(
-        "Tipo de Auditoria",
-        ["Usuário", "Lote", "Produto"],
-        selection_mode="single"
-    )
-    
-    st.markdown("---")
-    
-    try:
-        if aba == "Usuário":
-            st.subheader("👤 Auditorias de Usuário")
-            dados = supabase.table("auditoria_usuario").select("*").execute().data
-        elif aba == "Lote":
-            st.subheader("📦 Auditorias de Lote")
-            dados = supabase.table("auditoria_lote").select("*").execute().data
-        else:
-            st.subheader("🍚 Auditorias de Produto")
-            dados = supabase.table("auditoria_produto").select("*").execute().data
-        
-        if dados:
-            df = pd.DataFrame(dados)
-            st.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nenhum registro de auditoria para este tipo.")
-    except Exception as e:
-        st.error(f"Erro ao carregar auditorias: {e}")
+    st.header("📑 Auditorias")
+    tipo = st.radio("Tipo", ["Usuário", "Lote", "Produto"], horizontal=True)
+    tabela = {
+        "Usuário": "auditoria_usuario",
+        "Lote": "auditoria_lote",
+        "Produto": "auditoria_produto",
+    }[tipo]
+    mostrar_tabela(buscar(tabela))
 
-# Footer
+elif "Views" in menu:
+    st.header("👁️ Views do Banco")
+    views = {
+        "Itens de cada doação": "v_itens_de_cada_doacao",
+        "Auditoria geral": "view_auditoria_geral",
+        "Estoque atual": "view_estoque_atual",
+        "Ranking maior estoque": "view_ranking_maior_estoque",
+    }
+    nome_view = st.selectbox("Selecione a view", list(views.keys()))
+    try:
+        dados = supabase.table(views[nome_view]).select("*").execute().data
+        mostrar_tabela(dados)
+    except Exception as erro:
+        st.error(f"Erro ao carregar view {views[nome_view]}: {erro}")
+
 st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #7f8c8d; padding: 20px 0; font-size: 0.9em;'>
-    <p>🌱 SafeFood - Seu sistema de controle de doações alimentares</p>
-    <p>© 2024 - Desenvolvido para otimizar a gestão de alimentos</p>
-</div>
-""", unsafe_allow_html=True)
+st.caption("SafeFood - Sistema de Controle de Doações Alimentares")
