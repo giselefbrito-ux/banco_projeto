@@ -45,16 +45,16 @@
 
 # 🌎 Minimundo
 <p align="justify">
-&emsp;&emsp;&emsp;&emsp; O sistema gerencia alimentos provenientes de doações realizadas por pessoas físicas, empresas e mercados parceiros.
+&emsp;&emsp;&emsp;&emsp; O projeto surgiu a partir da necessidade de melhorar o controle de alimentos recebidos por meio de doações, buscando oferecer mais organização e transparência no gerenciamento desses recursos. A ideia foi inspirada em situações observadas no contexto do refeitório da Universidade de Pernambuco (UPE), Campus Garanhuns, onde o controle adequado dos alimentos é importante para evitar desperdícios e garantir uma distribuição mais eficiente.
+
 </p>
 <p align="justify">
-&emsp;&emsp;&emsp;&emsp; Os produtos recebidos são cadastrados e organizados em categorias alimentícias. Cada produto pode possuir um ou mais lotes, contendo informações sobre fabricação, validade e quantidade disponível.
+&emsp;&emsp;&emsp;&emsp; Além disso, o tema foi desenvolvido a partir de uma proposta já trabalhada em outra disciplina, sendo adaptado e ampliado para atender aos requisitos da disciplina de Banco de Dados. Com isso, foi possível aproveitar a ideia inicial e aprofundar aspectos relacionados à modelagem, armazenamento e gerenciamento de informações.
 </p>
 <p align="justify">
-&emsp;&emsp;&emsp;&emsp; Os alimentos são armazenados em estoque e podem ser destinados a instituições receptoras previamente cadastradas e validadas.
+&emsp;&emsp;&emsp;&emsp; 
+Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado apenas para uso dentro da universidade. A proposta é que ele possa ser utilizado também pela comunidade em geral, permitindo que moradores, mercados, empresas e instituições realizem doações de alimentos para pessoas ou organizações que necessitem desse apoio.
 </p>
 <p align="justify">
-&emsp;&emsp;&emsp;&emsp; Todas as movimentações realizadas sobre produtos e lotes são registradas, permitindo rastreabilidade completa. Além disso, o sistema gera alertas para produtos próximos ao vencimento, contribuindo para a redução do desperdício.
+&emsp;&emsp;&emsp;&emsp; Nesse contexto, o sistema foi projetado para controlar o cadastro de produtos alimentícios, usuários, instituições receptoras, estoque, movimentações e distribuição de alimentos. Também foram considerados mecanismos para acompanhar a entrada e saída dos produtos, monitorar a validade dos alimentos e registrar as operações realizadas, contribuindo para uma gestão mais organizada e confiável das doações recebidas e distribuídas.
 </p>
-<p align="justify">
-&emsp;&emsp;&emsp;&emsp; O sistema também registra solicitações de doação realizadas pelas instituições receptoras e controla as etapas de coleta e entrega dos alimentos.
