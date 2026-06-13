@@ -82,7 +82,7 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 <p align="justify">
 
 ### 🔹 Modelo Relacional: 
-📁 [Imagens dos Modelos](imagens/)
+📁 [Imagens dos Modelos](Modelo_Relacional/)
 
 # 💡 Modelo Lógico
 
