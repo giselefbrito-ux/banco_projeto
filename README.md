@@ -43,7 +43,8 @@
 * GitHub — utilizado para versionamento, armazenamento e compartilhamento dos arquivos do projeto.
 * ChatGPT — utilizado como ferramenta de apoio para geração de dados de teste e povoamento inicial das tabelas, auxiliando na criação de registros fictícios consistentes para validação e demonstração das funcionalidades implementadas no sistema.00
 
-# 🌎 Minimundo
+# 📊 Modelo Conceitual
+## Minimundo
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; O projeto surgiu a partir da necessidade de melhorar o controle de alimentos recebidos por meio de doações, buscando oferecer mais organização e transparência no gerenciamento desses recursos. A ideia foi inspirada em situações observadas no contexto do refeitório da Universidade de Pernambuco (UPE), Campus Garanhuns, onde o controle adequado dos alimentos é importante para evitar desperdícios e garantir uma distribuição mais eficiente.
 
@@ -57,4 +58,21 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 </p>
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; Nesse contexto, o sistema foi projetado para controlar o cadastro de produtos alimentícios, usuários, instituições receptoras, estoque, movimentações e distribuição de alimentos. Também foram considerados mecanismos para acompanhar a entrada e saída dos produtos, monitorar a validade dos alimentos e registrar as operações realizadas, contribuindo para uma gestão mais organizada e confiável das doações recebidas e distribuídas.
+</p>
+
+## MODELO DE ENTIDADE RELACIONAMENTO (MER)
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; A construção do modelo Entidade-Relacionamento (MER)  foi realizada por etapas. Inicialmente, cada integrante do grupo ficou responsável por desenvolver as tabelas relacionadas a sua parte no projeto, de acordo com os requisitos levantados para o sistema.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Após a conclusão dessas etapas individuais, todas as tabelas foram reunidas e analisadas em conjunto. Nesse momento, foram feitos ajustes nos atributos, nas chaves e nos relacionamentos para garantir que todas as informações estivessem conectadas corretamente e que não houvesse dados repetidos ou inconsistentes.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Com a integração das partes desenvolvidas por cada membro da equipe, foi possível construir um modelo único, representando todo o funcionamento do sistema. O MER final reúne entidades relacionadas aos usuários.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Esse modelo serviu como base para o desenvolvimento do modelo lógico e, posteriormente, para a implementação do banco de dados, permitindo representar de forma organizada as informações necessárias para o gerenciamento das doações e do controle de estoque de alimentos.  
+</p>
+<p align="justify">
+Link dos modelos utilizados: https://github.com/pedrocoelho25/SafeFood_projeto/tree/50e301bf030940d1d28d1654469935482f2abddd/modelo_relacional
 </p>
