@@ -81,8 +81,8 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 </p>
 <p align="justify">
 
-### 🔹 Link Modelo Relacional: 
-[📄 Acessar Modelo](https://github.com/pedrocoelho25/SafeFood_projeto/tree/main/modelo_relacional)
+### 🔹 Modelo Relacional: 
+📁 [Imagens dos Modelos](imagens/)
 
 # 💡 Modelo Lógico
 
