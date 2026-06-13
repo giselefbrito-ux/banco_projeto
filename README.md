@@ -159,7 +159,7 @@ Mais detalhes podem ser vistos no seguinte arquivo:
 O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
 </p>
 
-📄 [Criação de Tabelas](criacao_tabelas.sql)
+📄 [Criação de Tabelas](schemas.sql)
 
 # Modelo Físico
 
