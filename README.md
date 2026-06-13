@@ -36,15 +36,21 @@
 <p align="justify">
 	As principais ferramentas utilizadas foram:
 </p>
-* ERDPlus — utilizado na elaboração do Modelo Entidade-Relacionamento (MER) e do modelo lógico do banco de dados.
-* Supabase  — plataforma utilizada para implementação e gerenciamento do banco de dados PostgreSQL, permitindo a criação de tabelas, views, procedures, triggers e consultas SQL.
-* Python — linguagem de programação utilizada para integração da aplicação com o banco de dados.
-* Streamlit — framework utilizado para o desenvolvimento da interface da aplicação, permitindo a visualização e manipulação dos dados armazenados.
-* GitHub — utilizado para versionamento, armazenamento e compartilhamento dos arquivos do projeto.
-* ChatGPT — utilizado como ferramenta de apoio para geração de dados de teste e povoamento inicial das tabelas, auxiliando na criação de registros fictícios consistentes para validação e demonstração das funcionalidades implementadas no sistema.00
+
+* **ERDPlus** — utilizado na elaboração do Modelo Entidade-Relacionamento (MER) e do modelo lógico do banco de dados.
+
+* **Supabase** — plataforma utilizada para implementação e gerenciamento do banco de dados PostgreSQL, permitindo a criação de tabelas, views, procedures, triggers e consultas SQL.
+
+* **Python** — linguagem de programação utilizada para integração da aplicação com o banco de dados.
+
+* **Streamlit** — framework utilizado para o desenvolvimento da interface da aplicação, permitindo a visualização e manipulação dos dados armazenados.
+
+* **GitHub** — utilizado para versionamento, armazenamento e compartilhamento dos arquivos do projeto.
+
+* **ChatGPT** — utilizado como ferramenta de apoio para geração de dados de teste e povoamento inicial das tabelas, auxiliando na criação de registros fictícios consistentes para validação e demonstração das funcionalidades implementadas no sistema.
 
 # 📊 Modelo Conceitual
-## Minimundo
+## 1. Minimundo
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; O projeto surgiu a partir da necessidade de melhorar o controle de alimentos recebidos por meio de doações, buscando oferecer mais organização e transparência no gerenciamento desses recursos. A ideia foi inspirada em situações observadas no contexto do refeitório da Universidade de Pernambuco (UPE), Campus Garanhuns, onde o controle adequado dos alimentos é importante para evitar desperdícios e garantir uma distribuição mais eficiente.
 
@@ -60,7 +66,7 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 &emsp;&emsp;&emsp;&emsp; Nesse contexto, o sistema foi projetado para controlar o cadastro de produtos alimentícios, usuários, instituições receptoras, estoque, movimentações e distribuição de alimentos. Também foram considerados mecanismos para acompanhar a entrada e saída dos produtos, monitorar a validade dos alimentos e registrar as operações realizadas, contribuindo para uma gestão mais organizada e confiável das doações recebidas e distribuídas.
 </p>
 
-## MODELO DE ENTIDADE RELACIONAMENTO (MER)
+## 2. Modelo de Entidade Relacionamento (MER)
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; A construção do modelo Entidade-Relacionamento (MER)  foi realizada por etapas. Inicialmente, cada integrante do grupo ficou responsável por desenvolver as tabelas relacionadas a sua parte no projeto, de acordo com os requisitos levantados para o sistema.
 </p>
@@ -74,5 +80,26 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 &emsp;&emsp;&emsp;&emsp; Esse modelo serviu como base para o desenvolvimento do modelo lógico e, posteriormente, para a implementação do banco de dados, permitindo representar de forma organizada as informações necessárias para o gerenciamento das doações e do controle de estoque de alimentos.  
 </p>
 <p align="justify">
-Link dos modelos utilizados: https://github.com/pedrocoelho25/SafeFood_projeto/tree/50e301bf030940d1d28d1654469935482f2abddd/modelo_relacional
+
+### 🔹 Link Modelo Relacional: 
+[📄 Acessar Modelo](https://github.com/pedrocoelho25/SafeFood_projeto/tree/main/modelo_relacional)
+
+# 💡 Modelo Lógico
+
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; O modelo lógico foi desenvolvido a partir do Modelo Entidade-Relacionamento (MER), transformando as entidades e relacionamentos identificados na etapa conceitual em estruturas compatíveis com a implementação no banco de dados relacional. Nessa fase foram definidas as tabelas,os atributos, as chaves primárias, as chaves estrangeiras e as restrições de integridade necessárias para garantir a consistência das informações armazenadas. 
 </p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Durante o processo de refinamento do modelo, algumas alterações foram realizadas em relação à proposta inicial apresentada no MER. A principal modificação ocorreu na entidade usuario_doador, que estava presente nas versões preliminares do diagrama. Após análise dos requisitos do sistema, verificou-se que a separação entre usuários e doadores não agregava benefícios à modelagem,uma vez que as informações necessárias poderiam ser representadas pelas entidades já existentes. 
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Dessa forma, optou-se pela remoção da tabela usuario_doador,reduzindo a complexidade do modelo e evitando redundâncias de dados. Essa alteração contribuiu para uma estrutura mais simples e alinhada às necessidades reais do sistema implementado.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Além disso, durante a implementação foram realizados ajustes nos relacionamentos e atributos para adequar o modelo às funcionalidades desenvolvidas, incluindo mecanismos de auditoria,controle de estoque,movimentação de produtos e geração de alertas de validade. O resultado foi um modelo lógico mais consistente e preparado para a etapa de implementação física no banco de dados PostgreSQL utilizando a plataforma Supabase.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; A Figura 1 apresenta o modelo lógico inicial desenvolvido no ERDPlus, enquanto a Figura 2 apresenta o modelo lógico final implementado no Supabase após os refinamentos realizados durante o desenvolvimento do projeto.
+</p>
+
+### Figura 1 — Modelo lógico inicial desenvolvido no ERDPlus
