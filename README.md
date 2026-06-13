@@ -168,4 +168,4 @@ O script SQL completo utilizado para a criação das tabelas encontra-se dispon�
 <p align="justify">
 Link do documento com a população do banco: 
 </p>
-📄 [Seeds do Banco](./Criação%20de%20Tabelas)
+📄 [Seeds do Banco](./seeds_banco.sql)
