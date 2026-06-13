@@ -142,8 +142,30 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 * Auditoria Lote
 
 <p align="justify">
-&emsp;&emsp;&emsp;&emsp; O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
+O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
 </p>
 
 📄 [Criação de Tabelas](./Criação%20de%20Tabelas)
 
+# MODELO FÍSICO
+
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Após  a finalização do modelo lógico, foi realizada a implementação do banco de dados na plataforma Supabase. Nesta etapa, foram criadas as tabelas, os atributos, as chaves 	primárias e estrangeiras, além das demais restrições necessárias para o funcionamento do sistema.
+
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Para auxiliar no processo de criação da estrutura do banco de dados, foi utilizada inteligência artificial como apoio na geração de alguns atributos e comandos SQL. No entanto, todos os elementos gerados foram analisados e adaptados de acordo com as necessidades do projeto.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; A implementação ocorreu de forma mista. Parte da estrutura foi criada por meio de execução de comandos SQL no editor de consultas do Supabase, enquanto outra parte foi configurada manualmente utilizando a interface gráfica da plataforma, especialmente na definição de ajuste de atributos através da ferramenta Table Editor.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Após a conclusão dessa etapa, os comandos gerados e utilizados no banco foram exportados e organizados no arquivo seed.sql, disponibilizado no repositório do projeto no GitHub. Dessa forma, toda a estrutura e os dados utilizados para testes podem ser recriados de maneira padronizada em outros ambientes. 
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Essa abordagem permitiu maior flexibilidade durante o desenvolvimento, facilitando correções e adaptações necessárias ao longo da construção do banco de dados. Como resultado, foi obtido um modelo físico compatível com os requisitos definidos nas etapas anteriores e preparado para armazenar e gerenciar as informações do sistema de doações e controle de estoque de alimentos. 
+</p>
+<p align="justify">
+Link do documento com a população do banco: 
+</p>
+📄 [Seeds do Banco](./Criação%20de%20Tabelas)
