@@ -102,4 +102,9 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 &emsp;&emsp;&emsp;&emsp; A Figura 1 apresenta o modelo lógico inicial desenvolvido no ERDPlus, enquanto a Figura 2 apresenta o modelo lógico final implementado no Supabase após os refinamentos realizados durante o desenvolvimento do projeto.
 </p>
 
-### Figura 1 — Modelo lógico inicial desenvolvido no ERDPlus
+### Figura 1 — Modelo Lógico Inicial Desenvolvido no ERDPlus
+<img width="4113" height="1755" alt="model_logico(ERDplus)" src="https://github.com/user-attachments/assets/d660b956-fb18-4e6d-8e71-cb6c7fb96f5c" />
+
+### Figura 2 — Modelo Lógico Final Implementado no Supabase
+<img width="1061" height="537" alt="supabase-schema-vongxbyisbowsqtfofxl" src="https://github.com/user-attachments/assets/6497f5fb-2f5c-45dd-8c0b-ab3608fa8834" />
+
