@@ -106,5 +106,37 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 <img width="4113" height="1755" alt="model_logico(ERDplus)" src="https://github.com/user-attachments/assets/d660b956-fb18-4e6d-8e71-cb6c7fb96f5c" />
 
 ### Figura 2 — Modelo Lógico Final Implementado no Supabase
-<img width="1061" height="537" alt="supabase-schema-vongxbyisbowsqtfofxl" src="https://github.com/user-attachments/assets/6497f5fb-2f5c-45dd-8c0b-ab3608fa8834" />
+<img width="1570" height="868" alt="modelo_logico(supabase)_corrigido" src="https://github.com/user-attachments/assets/e2a8f332-7887-484e-8f82-e0040dc0f48f" />
 
+## 1. Normalização do Banco
+
+## 2. Criação das Tabelas
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Após a definição do modelo lógico, foi realizada a implementação física do banco de dados no Supabase utilizando a linguagem SQL. Nessa etapa foram criadas as tabelas responsáveis pelo armazenamento das informações do sistema SafeFood, bem como suas respectivas chaves primárias, chaves estrangeiras e restrições de integridade.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; As tabelas foram estruturadas de acordo com as entidades identificadas durante a modelagem, contemplando informações sobre usuários, produtos, lotes, estoque, doações, coletas, auditorias e movimentações de estoque além disso, foram definidos relacionamentos entre as tabelas por meio de restrições de chaves estrangeiras, garantindo consistência e a integridade dos dados armazenados.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Para a criação automática dos identificadores únicos, foram utilizadas  colunas do tipo IDENTITY, permitindo que os valores das chaves primárias fossem gerados automaticamente pelo sistema.
+</p>
+
+### Principais Tabelas Implementadas:
+
+* Usuário
+* Usuário Pessoa
+* Usuário Mercado
+* Instituição Receptora
+* Produto
+* Produto Categoria
+* Lote
+* Estoque
+* Doação
+* Item Doação
+* Solicitação de Doação
+* Coleta
+* Movimentação de Estoque
+* Alerta de Validade
+* Auditoria Usuário
+* Auditoria Produto
+* Auditoria Lote
