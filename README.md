@@ -122,7 +122,7 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 Mais detalhes podem ser vistos no seguinte arquivo:
 </p>
 
-📄 [Normalização do Banco](normalizacao_banco.sql)
+📄 [Normalização do Banco](SQL/normalizacao_banco.sql)
 
 ## 2. Criação das Tabelas
 <p align="justify">
@@ -159,7 +159,7 @@ Mais detalhes podem ser vistos no seguinte arquivo:
 O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
 </p>
 
-📄 [Criação de Tabelas](schemas.sql)
+📄 [Criação de Tabelas](SQL/schemas.sql)
 
 # Modelo Físico
 
@@ -183,7 +183,7 @@ O script SQL completo utilizado para a criação das tabelas encontra-se dispon�
 Link do documento com a população do banco: 
 </p>
 
-📄 [Seeds do Banco](seeds_banco.sql)
+📄 [Seeds do Banco](SQL/seeds_banco.sql)
 
 ## 1. Recursos Avançados do Banco de Dados
 
