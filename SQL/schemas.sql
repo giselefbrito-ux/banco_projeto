@@ -1,6 +1,16 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict WZKRYjEDPDIP43duDbZxnqMg27Ki9tXHEK0PRmyZdYgAKK5jjeh3ll6BmfEXEf5
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 18.3 (Ubuntu 18.3-1.pgdg25.10+1)
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -9,19 +19,58 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
 
-CREATE SCHEMA IF NOT EXISTS "public";
-
-
-ALTER SCHEMA "public" OWNER TO "pg_database_owner";
-
-
-COMMENT ON SCHEMA "public" IS 'standard public schema';
+CREATE SCHEMA public;
 
 
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
 
-CREATE OR REPLACE FUNCTION "public"."fn_atualizar_estoque_lote"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+
+--
+-- Name: fn_atualizar_estoque(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_atualizar_estoque() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    UPDATE estoque
+    SET quantidade_atual = NEW.quantidade
+    WHERE id_lote = NEW.id_lote;
+
+    IF NOT FOUND THEN
+        INSERT INTO estoque (
+            quantidade_atual,
+            local_armazenamento,
+            id_usuario,
+            id_lote
+        )
+        VALUES (
+            NEW.quantidade,
+            'Depósito Principal',
+            1,
+            NEW.id_lote
+        );
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: fn_atualizar_estoque_lote(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_atualizar_estoque_lote() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$BEGIN
 
   INSERT INTO estoque(
@@ -47,11 +96,33 @@ CREATE OR REPLACE FUNCTION "public"."fn_atualizar_estoque_lote"() RETURNS "trigg
 END;$$;
 
 
-ALTER FUNCTION "public"."fn_atualizar_estoque_lote"() OWNER TO "postgres";
+--
+-- Name: fn_atualizar_status_doacao(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_atualizar_status_doacao() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+
+    IF NEW.status_coleta = 'CONCLUÍDA' THEN
+        UPDATE doacao
+        SET status_doacao = 'Coletada'
+        WHERE id_doacao = NEW.id_doacao;
+    END IF;
+
+    RETURN NEW;
+
+END;
+$$;
 
 
-CREATE OR REPLACE FUNCTION "public"."fn_auditoria_lote"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+--
+-- Name: fn_auditoria_lote(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.fn_auditoria_lote() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$BEGIN
 
     INSERT INTO auditoria_lote(
@@ -83,11 +154,12 @@ CREATE OR REPLACE FUNCTION "public"."fn_auditoria_lote"() RETURNS "trigger"
 END;$$;
 
 
-ALTER FUNCTION "public"."fn_auditoria_lote"() OWNER TO "postgres";
+--
+-- Name: fn_auditoria_produto(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_auditoria_produto"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_auditoria_produto() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -121,11 +193,12 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_auditoria_produto"() OWNER TO "postgres";
+--
+-- Name: fn_auditoria_usuario(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_auditoria_usuario"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_auditoria_usuario() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN 
     IF TG_OP = 'INSERT' THEN 
@@ -179,11 +252,12 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_auditoria_usuario"() OWNER TO "postgres";
+--
+-- Name: fn_chamar_verificar_validade(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_chamar_verificar_validade"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_chamar_verificar_validade() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN
     CALL sp_verificar_validade();
@@ -192,11 +266,12 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_chamar_verificar_validade"() OWNER TO "postgres";
+--
+-- Name: fn_criar_alerta_validade(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_criar_alerta_validade"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_criar_alerta_validade() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -238,40 +313,44 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_criar_alerta_validade"() OWNER TO "postgres";
+--
+-- Name: fn_registrar_movimentacao(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_registrar_movimentacao"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_registrar_movimentacao() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN
-
-  INSERT INTO movimentacao_estoque (
-    tipo_movimentacao,
-    quantidade_movimentada,
-    data_movimentacao,
-    id_lote,
-    id_usuario
+    INSERT INTO movimentacao_estoque (
+        tipo_movimentacao,
+        quantidade_movimentada,
+        data_movimentacao,
+        id_lote,
+        id_usuario
     )
     VALUES (
-      'Atualizacao',
-      NEW.quantidade_atual - OLD.quantidade_atual,
-      CURRENT_DATE,
-      NEW.id_lote,
-      NEW.id_usuario
+        'SAIDA',
+        NEW.quantidade,
+        CURRENT_DATE,
+        NEW.id_lote,
+        1
     );
 
-    RETURN NEW;
+    UPDATE estoque
+    SET quantidade_atual = quantidade_atual - NEW.quantidade
+    WHERE id_lote = NEW.id_lote;
 
+    RETURN NEW;
 END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_registrar_movimentacao"() OWNER TO "postgres";
+--
+-- Name: fn_verificar_estoque_negativo(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."fn_verificar_estoque_negativo"() RETURNS "trigger"
-    LANGUAGE "plpgsql"
+CREATE FUNCTION public.fn_verificar_estoque_negativo() RETURNS trigger
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -285,12 +364,13 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."fn_verificar_estoque_negativo"() OWNER TO "postgres";
+--
+-- Name: rls_auto_enable(); Type: FUNCTION; Schema: public; Owner: -
+--
 
-
-CREATE OR REPLACE FUNCTION "public"."rls_auto_enable"() RETURNS "event_trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog'
+CREATE FUNCTION public.rls_auto_enable() RETURNS event_trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
     AS $$
 DECLARE
   cmd record;
@@ -317,11 +397,12 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."rls_auto_enable"() OWNER TO "postgres";
+--
+-- Name: sp_adicionar_estoque(integer, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_adicionar_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_adicionar_estoque(IN p_id_estoque integer, IN p_quantidade integer)
+    LANGUAGE plpgsql
     AS $$
 
 BEGIN
@@ -334,11 +415,12 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_adicionar_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) OWNER TO "postgres";
+--
+-- Name: sp_alterar_usuario(integer, character varying, character varying, character varying); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_alterar_usuario"(IN "p_id_usuario" integer, IN "p_nome" character varying, IN "p_email" character varying, IN "p_telefone" character varying)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_alterar_usuario(IN p_id_usuario integer, IN p_nome character varying, IN p_email character varying, IN p_telefone character varying)
+    LANGUAGE plpgsql
     AS $$
 BEGIN 
     UPDATE usuario
@@ -351,11 +433,12 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_alterar_usuario"(IN "p_id_usuario" integer, IN "p_nome" character varying, IN "p_email" character varying, IN "p_telefone" character varying) OWNER TO "postgres";
+--
+-- Name: sp_atualizar_estoque(integer, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_atualizar_estoque"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_atualizar_estoque(IN p_id_estoque integer, IN p_nova_quantidade integer)
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -367,11 +450,12 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_atualizar_estoque"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) OWNER TO "postgres";
+--
+-- Name: sp_atualizar_quantidade(integer, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_atualizar_quantidade"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_atualizar_quantidade(IN p_id_estoque integer, IN p_nova_quantidade integer)
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -383,11 +467,29 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_atualizar_quantidade"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) OWNER TO "postgres";
+--
+-- Name: sp_confirmar_coleta(integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_confirmar_coleta(IN p_id_coleta integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+
+UPDATE coleta
+SET status_coleta = 'CONCLUÍDA'
+WHERE p_id_coleta = id_coleta;
+
+END;
+$$;
 
 
-CREATE PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_telefone" character varying)
-    LANGUAGE "plpgsql"
+--
+-- Name: sp_criar_usuario(character varying, character varying, character varying, character varying); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_criar_usuario(IN p_nome character varying, IN p_email character varying, IN p_senha character varying, IN p_telefone character varying)
+    LANGUAGE plpgsql
     AS $$
 BEGIN 
     INSERT INTO usuario(
@@ -406,11 +508,12 @@ BEGIN
     $$;
 
 
-ALTER PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_telefone" character varying) OWNER TO "postgres";
+--
+-- Name: sp_criar_usuario(character varying, character varying, character varying, integer, character varying); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_id_usuario" integer, IN "p_telefone" character varying)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_criar_usuario(IN p_nome character varying, IN p_email character varying, IN p_senha character varying, IN p_id_usuario integer, IN p_telefone character varying)
+    LANGUAGE plpgsql
     AS $$
 BEGIN 
     INSERT INTO usuario(
@@ -431,11 +534,12 @@ BEGIN
     $$;
 
 
-ALTER PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_id_usuario" integer, IN "p_telefone" character varying) OWNER TO "postgres";
+--
+-- Name: sp_desativar_usuario(integer); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_desativar_usuario"(IN "p_id_usuario" integer)
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_desativar_usuario(IN p_id_usuario integer)
+    LANGUAGE plpgsql
     AS $$
 BEGIN 
     DELETE FROM usuario
@@ -444,11 +548,12 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_desativar_usuario"(IN "p_id_usuario" integer) OWNER TO "postgres";
+--
+-- Name: sp_limpar_alertas_resolvidos(); Type: PROCEDURE; Schema: public; Owner: -
+--
 
-
-CREATE PROCEDURE "public"."sp_limpar_alertas_resolvidos"()
-    LANGUAGE "plpgsql"
+CREATE PROCEDURE public.sp_limpar_alertas_resolvidos()
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -464,11 +569,37 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_limpar_alertas_resolvidos"() OWNER TO "postgres";
+--
+-- Name: sp_relaizar_doacao(text, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_relaizar_doacao(IN p_descricao text, IN p_id_usuario_receptor integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+
+    INSERT INTO doacao(
+        data_doacao,
+        status_doacao,
+        descricao,
+        id_usuario_receptor
+    )
+    VALUES(
+        current_date,
+        'Aguardando coleta',
+        p_descricao,
+        p_id_usuario_receptor
+    );
+END;
+$$;
 
 
-CREATE PROCEDURE "public"."sp_remover_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer)
-    LANGUAGE "plpgsql"
+--
+-- Name: sp_remover_estoque(integer, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_remover_estoque(IN p_id_estoque integer, IN p_quantidade integer)
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -480,11 +611,36 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_remover_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) OWNER TO "postgres";
+--
+-- Name: sp_solicitar_doacao(text, integer); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_solicitar_doacao(IN p_descricao text, IN p_id_usuario_solicitacao integer)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO solicitacao_doacao(
+        descricao,
+        data_solicitacao,
+        status_solicitacao,
+        id_usuario_receptor
+    )
+    VALUES(
+        p_descricao,
+        CURRENT_DATE,
+        'Pendente',
+        p_id_usuario_solicitacao
+    );
+END;
+$$;
 
 
-CREATE PROCEDURE "public"."sp_verificar_validade"()
-    LANGUAGE "plpgsql"
+--
+-- Name: sp_verificar_validade(); Type: PROCEDURE; Schema: public; Owner: -
+--
+
+CREATE PROCEDURE public.sp_verificar_validade()
+    LANGUAGE plpgsql
     AS $$
 BEGIN
 
@@ -542,28 +698,31 @@ END;
 $$;
 
 
-ALTER PROCEDURE "public"."sp_verificar_validade"() OWNER TO "postgres";
-
 SET default_tablespace = '';
 
-SET default_table_access_method = "heap";
+SET default_table_access_method = heap;
 
+--
+-- Name: alerta_validade; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."alerta_validade" (
-    "id_alerta" integer NOT NULL,
-    "dias_restantes" integer,
-    "status_alerta" "text",
-    "data_alerta" "date",
-    "mensagem" "text",
-    "id_lote_alerta" integer
+CREATE TABLE public.alerta_validade (
+    id_alerta integer NOT NULL,
+    dias_restantes integer,
+    status_alerta text,
+    data_alerta date,
+    mensagem text,
+    id_lote_alerta integer,
+    CONSTRAINT chk_status_alerta CHECK ((status_alerta = ANY (ARRAY['MONITORAMENTO'::text, 'URGENTE'::text, 'ATENCAO'::text])))
 );
 
 
-ALTER TABLE "public"."alerta_validade" OWNER TO "postgres";
+--
+-- Name: alerta_validade_id_alerta_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."alerta_validade" ALTER COLUMN "id_alerta" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."alerta_validade_id_alerta_seq"
+ALTER TABLE public.alerta_validade ALTER COLUMN id_alerta ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.alerta_validade_id_alerta_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -572,24 +731,28 @@ ALTER TABLE "public"."alerta_validade" ALTER COLUMN "id_alerta" ADD GENERATED BY
 );
 
 
+--
+-- Name: auditoria_lote; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."auditoria_lote" (
-    "id_auditoria_lote" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "tipo_acao" "text",
-    "data" "date",
-    "hora" time without time zone,
-    "id_usuario" integer,
-    "id_lote" bigint,
-    "descricao_acao" "text"
+CREATE TABLE public.auditoria_lote (
+    id_auditoria_lote bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tipo_acao text,
+    data date,
+    hora time without time zone,
+    id_usuario integer,
+    id_lote bigint,
+    descricao_acao text
 );
 
 
-ALTER TABLE "public"."auditoria_lote" OWNER TO "postgres";
+--
+-- Name: auditoria_lote_id_auditoria_lote_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."auditoria_lote" ALTER COLUMN "id_auditoria_lote" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."auditoria_lote_id_auditoria_lote_seq"
+ALTER TABLE public.auditoria_lote ALTER COLUMN id_auditoria_lote ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.auditoria_lote_id_auditoria_lote_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -598,24 +761,28 @@ ALTER TABLE "public"."auditoria_lote" ALTER COLUMN "id_auditoria_lote" ADD GENER
 );
 
 
+--
+-- Name: auditoria_produto; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."auditoria_produto" (
-    "id_auditoria_produto" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "tipo_acao" "text",
-    "descricao_acao" "text",
-    "id_usuario_responsavel" integer,
-    "id_produto" integer,
-    "data" "date",
-    "hora" time without time zone
+CREATE TABLE public.auditoria_produto (
+    id_auditoria_produto bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tipo_acao text,
+    descricao_acao text,
+    id_usuario_responsavel integer,
+    id_produto integer,
+    data date,
+    hora time without time zone
 );
 
 
-ALTER TABLE "public"."auditoria_produto" OWNER TO "postgres";
+--
+-- Name: auditoria_produto_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."auditoria_produto" ALTER COLUMN "id_auditoria_produto" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."auditoria_produto_id_seq"
+ALTER TABLE public.auditoria_produto ALTER COLUMN id_auditoria_produto ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.auditoria_produto_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -624,22 +791,26 @@ ALTER TABLE "public"."auditoria_produto" ALTER COLUMN "id_auditoria_produto" ADD
 );
 
 
+--
+-- Name: auditoria_usuario; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."auditoria_usuario" (
-    "id_auditoria_usuario" integer NOT NULL,
-    "tipo_acao" "text",
-    "data" "date",
-    "descricao_acao" "text",
-    "id_usuario_afetado" integer,
-    "hora" time without time zone
+CREATE TABLE public.auditoria_usuario (
+    id_auditoria_usuario integer NOT NULL,
+    tipo_acao text,
+    data date,
+    descricao_acao text,
+    id_usuario_afetado integer,
+    hora time without time zone
 );
 
 
-ALTER TABLE "public"."auditoria_usuario" OWNER TO "postgres";
+--
+-- Name: auditoria_usuario_id_auditoria_usuario_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."auditoria_usuario" ALTER COLUMN "id_auditoria_usuario" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."auditoria_usuario_id_auditoria_usuario_seq"
+ALTER TABLE public.auditoria_usuario ALTER COLUMN id_auditoria_usuario ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.auditoria_usuario_id_auditoria_usuario_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -648,23 +819,28 @@ ALTER TABLE "public"."auditoria_usuario" ALTER COLUMN "id_auditoria_usuario" ADD
 );
 
 
+--
+-- Name: coleta; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."coleta" (
-    "id_coleta" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "data_coleta" "date",
-    "status_coleta" "text",
-    "endereco_retirada" "text",
-    "endereco_entrega" "text",
-    "id_doacao" bigint
+CREATE TABLE public.coleta (
+    id_coleta bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    data_coleta date,
+    status_coleta text,
+    endereco_retirada text,
+    endereco_entrega text,
+    id_doacao bigint,
+    CONSTRAINT chk_status_coleta CHECK ((status_coleta = ANY (ARRAY['CONCLUÍDA'::text, 'PENDENTE'::text])))
 );
 
 
-ALTER TABLE "public"."coleta" OWNER TO "postgres";
+--
+-- Name: coleta_id_coleta_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."coleta" ALTER COLUMN "id_coleta" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."coleta_id_coleta_seq"
+ALTER TABLE public.coleta ALTER COLUMN id_coleta ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.coleta_id_coleta_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -673,22 +849,27 @@ ALTER TABLE "public"."coleta" ALTER COLUMN "id_coleta" ADD GENERATED BY DEFAULT 
 );
 
 
+--
+-- Name: doacao; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."doacao" (
-    "id_doacao" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "data_doacao" "date",
-    "status_doacao" "text",
-    "descricao" "text",
-    "id_usuario_receptor" integer
+CREATE TABLE public.doacao (
+    id_doacao bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    data_doacao date,
+    status_doacao text,
+    descricao text,
+    id_usuario_receptor integer,
+    CONSTRAINT chk_status_doacao CHECK ((status_doacao = ANY (ARRAY['Coletada'::text, 'Pendente'::text, 'Concluida'::text])))
 );
 
 
-ALTER TABLE "public"."doacao" OWNER TO "postgres";
+--
+-- Name: doacao_id_doacao_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."doacao" ALTER COLUMN "id_doacao" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."doacao_id_doacao_seq"
+ALTER TABLE public.doacao ALTER COLUMN id_doacao ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.doacao_id_doacao_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -697,22 +878,26 @@ ALTER TABLE "public"."doacao" ALTER COLUMN "id_doacao" ADD GENERATED BY DEFAULT 
 );
 
 
+--
+-- Name: estoque; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."estoque" (
-    "id_estoque" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "quantidade_atual" bigint,
-    "local_armazenamento" "text",
-    "id_usuario" integer,
-    "id_lote" integer
+CREATE TABLE public.estoque (
+    id_estoque bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    quantidade_atual bigint,
+    local_armazenamento text,
+    id_usuario integer NOT NULL,
+    id_lote integer
 );
 
 
-ALTER TABLE "public"."estoque" OWNER TO "postgres";
+--
+-- Name: estoque_id_estoque_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."estoque" ALTER COLUMN "id_estoque" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."estoque_id_estoque_seq"
+ALTER TABLE public.estoque ALTER COLUMN id_estoque ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.estoque_id_estoque_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -721,20 +906,25 @@ ALTER TABLE "public"."estoque" ALTER COLUMN "id_estoque" ADD GENERATED BY DEFAUL
 );
 
 
+--
+-- Name: instituicao_receptora; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."instituicao_receptora" (
-    "id_usuario_receptor" integer NOT NULL,
-    "cnpj" "text",
-    "tipo_instituicao" "text",
-    "status" "text"
+CREATE TABLE public.instituicao_receptora (
+    id_usuario_receptor integer NOT NULL,
+    cnpj text,
+    tipo_instituicao text,
+    status text,
+    CONSTRAINT chk_status_instituicao CHECK ((status = ANY (ARRAY['Ativa'::text, 'Inativa'::text])))
 );
 
 
-ALTER TABLE "public"."instituicao_receptora" OWNER TO "postgres";
+--
+-- Name: instituicao_receptora_id_usuario_receptor_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."instituicao_receptora" ALTER COLUMN "id_usuario_receptor" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."instituicao_receptora_id_usuario_receptor_seq"
+ALTER TABLE public.instituicao_receptora ALTER COLUMN id_usuario_receptor ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.instituicao_receptora_id_usuario_receptor_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -743,22 +933,25 @@ ALTER TABLE "public"."instituicao_receptora" ALTER COLUMN "id_usuario_receptor" 
 );
 
 
+--
+-- Name: item_doacao; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."item_doacao" (
-    "id_item_doacao" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "item_doacao" "text",
-    "quantidade" integer,
-    "id_doacao" bigint,
-    "id_lote" integer
+CREATE TABLE public.item_doacao (
+    id_item_doacao bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    quantidade integer,
+    id_doacao bigint,
+    id_lote integer
 );
 
 
-ALTER TABLE "public"."item_doacao" OWNER TO "postgres";
+--
+-- Name: item_doacao_id_item_doacao_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."item_doacao" ALTER COLUMN "id_item_doacao" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."item_doacao_id_item_doacao_seq"
+ALTER TABLE public.item_doacao ALTER COLUMN id_item_doacao ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.item_doacao_id_item_doacao_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -767,22 +960,26 @@ ALTER TABLE "public"."item_doacao" ALTER COLUMN "id_item_doacao" ADD GENERATED B
 );
 
 
+--
+-- Name: lote; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."lote" (
-    "id_lote" integer NOT NULL,
-    "quantidade" integer,
-    "data_validade" "date",
-    "data_entrada" "date",
-    "data_fabricacao" "date",
-    "id_produto_lote" integer
+CREATE TABLE public.lote (
+    id_lote integer NOT NULL,
+    quantidade integer,
+    data_validade date,
+    data_entrada date,
+    data_fabricacao date,
+    id_produto_lote integer
 );
 
 
-ALTER TABLE "public"."lote" OWNER TO "postgres";
+--
+-- Name: lote_id_lote_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."lote" ALTER COLUMN "id_lote" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."lote_id_lote_seq"
+ALTER TABLE public.lote ALTER COLUMN id_lote ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.lote_id_lote_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -791,23 +988,28 @@ ALTER TABLE "public"."lote" ALTER COLUMN "id_lote" ADD GENERATED BY DEFAULT AS I
 );
 
 
+--
+-- Name: movimentacao_estoque; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."movimentacao_estoque" (
-    "id_movimentacao" bigint NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "tipo_movimentacao" "text",
-    "quantidade_movimentada" integer,
-    "data_movimentacao" "date",
-    "id_lote" integer,
-    "id_usuario" integer
+CREATE TABLE public.movimentacao_estoque (
+    id_movimentacao bigint NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tipo_movimentacao text,
+    quantidade_movimentada integer,
+    data_movimentacao date,
+    id_lote integer,
+    id_usuario integer,
+    CONSTRAINT chk_tipo_movimentacao CHECK ((tipo_movimentacao = ANY (ARRAY['ENTRADA'::text, 'SAIDA'::text])))
 );
 
 
-ALTER TABLE "public"."movimentacao_estoque" OWNER TO "postgres";
+--
+-- Name: movimentacao_estoque_id_movimentacao_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."movimentacao_estoque" ALTER COLUMN "id_movimentacao" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."movimentacao_estoque_id_movimentacao_seq"
+ALTER TABLE public.movimentacao_estoque ALTER COLUMN id_movimentacao ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.movimentacao_estoque_id_movimentacao_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -816,29 +1018,34 @@ ALTER TABLE "public"."movimentacao_estoque" ALTER COLUMN "id_movimentacao" ADD G
 );
 
 
+--
+-- Name: produto; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."produto" (
-    "id_produto" integer NOT NULL,
-    "nome_produto" "text",
-    "id_usuario" integer,
-    "id_categoria_produto" integer
+CREATE TABLE public.produto (
+    id_produto integer NOT NULL,
+    nome_produto text,
+    id_usuario integer,
+    id_categoria_produto integer
 );
 
 
-ALTER TABLE "public"."produto" OWNER TO "postgres";
+--
+-- Name: produto_categoria; Type: TABLE; Schema: public; Owner: -
+--
 
-
-CREATE TABLE IF NOT EXISTS "public"."produto_categoria" (
-    "id_categoria" integer NOT NULL,
-    "nome_categoria" "text"
+CREATE TABLE public.produto_categoria (
+    id_categoria integer NOT NULL,
+    nome_categoria text
 );
 
 
-ALTER TABLE "public"."produto_categoria" OWNER TO "postgres";
+--
+-- Name: produto_categoria_id_categoria_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."produto_categoria" ALTER COLUMN "id_categoria" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."produto_categoria_id_categoria_seq"
+ALTER TABLE public.produto_categoria ALTER COLUMN id_categoria ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.produto_categoria_id_categoria_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -847,9 +1054,12 @@ ALTER TABLE "public"."produto_categoria" ALTER COLUMN "id_categoria" ADD GENERAT
 );
 
 
+--
+-- Name: produto_id_produto_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."produto" ALTER COLUMN "id_produto" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."produto_id_produto_seq"
+ALTER TABLE public.produto ALTER COLUMN id_produto ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.produto_id_produto_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -858,21 +1068,26 @@ ALTER TABLE "public"."produto" ALTER COLUMN "id_produto" ADD GENERATED BY DEFAUL
 );
 
 
+--
+-- Name: solicitacao_doacao; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."solicitacao_doacao" (
-    "id_solicitacao" integer NOT NULL,
-    "descricao" "text",
-    "data_solicitacao" "text",
-    "status_solicitacao" "text",
-    "id_usuario_solicitacao" integer
+CREATE TABLE public.solicitacao_doacao (
+    id_solicitacao integer NOT NULL,
+    descricao text,
+    data_solicitacao timestamp without time zone,
+    status_solicitacao text,
+    id_usuario_receptor integer,
+    CONSTRAINT chk_status_solicitacao CHECK ((status_solicitacao = ANY (ARRAY['Aprovada'::text, 'Em analise'::text, 'Aberta'::text])))
 );
 
 
-ALTER TABLE "public"."solicitacao_doacao" OWNER TO "postgres";
+--
+-- Name: solicitacao_doacao_id_solicitacao_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."solicitacao_doacao" ALTER COLUMN "id_solicitacao" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."solicitacao_doacao_id_solicitacao_seq"
+ALTER TABLE public.solicitacao_doacao ALTER COLUMN id_solicitacao ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.solicitacao_doacao_id_solicitacao_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -881,21 +1096,27 @@ ALTER TABLE "public"."solicitacao_doacao" ALTER COLUMN "id_solicitacao" ADD GENE
 );
 
 
+--
+-- Name: telefone_usuario; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."usuario" (
-    "id_usuario" integer NOT NULL,
-    "nome" "text" NOT NULL,
-    "email" "text" NOT NULL,
-    "telefone" "text" NOT NULL,
-    "auth_id" "uuid"
+CREATE TABLE public.telefone_usuario (
+    id_telefone integer NOT NULL,
+    id_usuario integer NOT NULL,
+    telefone text NOT NULL,
+    tipo_telefone text DEFAULT 'principal'::text,
+    CONSTRAINT chk_telefone_apenas_numeros CHECK ((telefone ~ '^[0-9]+$'::text)),
+    CONSTRAINT chk_telefone_tamanho CHECK (((char_length(telefone) >= 10) AND (char_length(telefone) <= 11))),
+    CONSTRAINT chk_tipo_telefone CHECK ((tipo_telefone = ANY (ARRAY['principal'::text, 'whatsapp'::text, 'comercial'::text, 'residencial'::text])))
 );
 
 
-ALTER TABLE "public"."usuario" OWNER TO "postgres";
+--
+-- Name: telefone_usuario_id_telefone_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."usuario" ALTER COLUMN "id_usuario" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."usuario_id_usuario_seq"
+ALTER TABLE public.telefone_usuario ALTER COLUMN id_telefone ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.telefone_usuario_id_telefone_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -904,20 +1125,24 @@ ALTER TABLE "public"."usuario" ALTER COLUMN "id_usuario" ADD GENERATED BY DEFAUL
 );
 
 
+--
+-- Name: usuario; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."usuario_mercado" (
-    "id_usuario_mercado" integer NOT NULL,
-    "cnpj" "text" NOT NULL,
-    "segmento" "text",
-    "nome_fantasia" "text"
+CREATE TABLE public.usuario (
+    id_usuario integer NOT NULL,
+    nome text NOT NULL,
+    email text NOT NULL,
+    auth_id uuid
 );
 
 
-ALTER TABLE "public"."usuario_mercado" OWNER TO "postgres";
+--
+-- Name: usuario_id_usuario_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."usuario_mercado" ALTER COLUMN "id_usuario_mercado" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."usuario_mercado_id_usuario_mercado_seq"
+ALTER TABLE public.usuario ALTER COLUMN id_usuario ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.usuario_id_usuario_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -926,19 +1151,24 @@ ALTER TABLE "public"."usuario_mercado" ALTER COLUMN "id_usuario_mercado" ADD GEN
 );
 
 
+--
+-- Name: usuario_mercado; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE TABLE IF NOT EXISTS "public"."usuario_pessoa" (
-    "id_usuario_pessoa" integer NOT NULL,
-    "cpf" "text" NOT NULL,
-    "data_nascimento" "text"
+CREATE TABLE public.usuario_mercado (
+    id_usuario_mercado integer NOT NULL,
+    cnpj text NOT NULL,
+    segmento text,
+    nome_fantasia text
 );
 
 
-ALTER TABLE "public"."usuario_pessoa" OWNER TO "postgres";
+--
+-- Name: usuario_mercado_id_usuario_mercado_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
 
-
-ALTER TABLE "public"."usuario_pessoa" ALTER COLUMN "id_usuario_pessoa" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."usuario_pessoa_id_usuario_pessoa_seq"
+ALTER TABLE public.usuario_mercado ALTER COLUMN id_usuario_mercado ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.usuario_mercado_id_usuario_mercado_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -947,749 +1177,618 @@ ALTER TABLE "public"."usuario_pessoa" ALTER COLUMN "id_usuario_pessoa" ADD GENER
 );
 
 
+--
+-- Name: usuario_pessoa; Type: TABLE; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE VIEW "public"."v_itens_de_cada_doacao" AS
- SELECT "d"."id_doacao" AS "código_da_doação",
-    "d"."status_doacao" AS "status_da_doação",
-    "d"."data_doacao" AS "data_da_doação",
-    "p"."nome_produto" AS "item_doado",
-    "i"."quantidade" AS "quantidade_de_itens",
-    "l"."id_lote" AS "código_do_lote",
-    "l"."data_validade" AS "validade_do_lote"
-   FROM ((("public"."doacao" "d"
-     JOIN "public"."item_doacao" "i" ON (("d"."id_doacao" = "i"."id_doacao")))
-     JOIN "public"."lote" "l" ON (("i"."id_lote" = "l"."id_lote")))
-     JOIN "public"."produto" "p" ON (("l"."id_produto_lote" = "p"."id_produto")));
+CREATE TABLE public.usuario_pessoa (
+    id_usuario_pessoa integer NOT NULL,
+    cpf text NOT NULL,
+    data_nascimento text
+);
 
 
-ALTER VIEW "public"."v_itens_de_cada_doacao" OWNER TO "postgres";
+--
+-- Name: usuario_pessoa_id_usuario_pessoa_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.usuario_pessoa ALTER COLUMN id_usuario_pessoa ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.usuario_pessoa_id_usuario_pessoa_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
-CREATE OR REPLACE VIEW "public"."view_auditoria_geral" AS
- SELECT "auditoria_usuario"."id_auditoria_usuario" AS "id_auditoria",
-    'USUARIO'::"text" AS "tipo_auditoria",
-    "auditoria_usuario"."tipo_acao",
-    "auditoria_usuario"."data",
-    "auditoria_usuario"."hora",
-    "auditoria_usuario"."descricao_acao",
-    "auditoria_usuario"."id_usuario_afetado"
-   FROM "public"."auditoria_usuario"
+--
+-- Name: v_itens_de_cada_doacao; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.v_itens_de_cada_doacao AS
+ SELECT d.id_doacao AS "código_da_doação",
+    d.status_doacao AS "status_da_doação",
+    d.data_doacao AS "data_da_doação",
+    p.nome_produto AS item_doado,
+    i.quantidade AS quantidade_de_itens,
+    l.id_lote AS "código_do_lote",
+    l.data_validade AS validade_do_lote
+   FROM (((public.doacao d
+     JOIN public.item_doacao i ON ((d.id_doacao = i.id_doacao)))
+     JOIN public.lote l ON ((i.id_lote = l.id_lote)))
+     JOIN public.produto p ON ((l.id_produto_lote = p.id_produto)));
+
+
+--
+-- Name: view_auditoria_geral; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.view_auditoria_geral AS
+ SELECT auditoria_usuario.id_auditoria_usuario AS id_auditoria,
+    'USUARIO'::text AS tipo_auditoria,
+    auditoria_usuario.tipo_acao,
+    auditoria_usuario.data,
+    auditoria_usuario.hora,
+    auditoria_usuario.descricao_acao,
+    auditoria_usuario.id_usuario_afetado
+   FROM public.auditoria_usuario
 UNION ALL
- SELECT "auditoria_produto"."id_auditoria_produto" AS "id_auditoria",
-    'PRODUTO'::"text" AS "tipo_auditoria",
-    "auditoria_produto"."tipo_acao",
-    "auditoria_produto"."data",
-    "auditoria_produto"."hora",
-    "auditoria_produto"."descricao_acao",
-    "auditoria_produto"."id_usuario_responsavel" AS "id_usuario_afetado"
-   FROM "public"."auditoria_produto"
+ SELECT auditoria_produto.id_auditoria_produto AS id_auditoria,
+    'PRODUTO'::text AS tipo_auditoria,
+    auditoria_produto.tipo_acao,
+    auditoria_produto.data,
+    auditoria_produto.hora,
+    auditoria_produto.descricao_acao,
+    auditoria_produto.id_usuario_responsavel AS id_usuario_afetado
+   FROM public.auditoria_produto
 UNION ALL
- SELECT "auditoria_lote"."id_auditoria_lote" AS "id_auditoria",
-    'LOTE'::"text" AS "tipo_auditoria",
-    "auditoria_lote"."tipo_acao",
-    "auditoria_lote"."data",
-    "auditoria_lote"."hora",
-    "auditoria_lote"."descricao_acao",
-    "auditoria_lote"."id_lote" AS "id_usuario_afetado"
-   FROM "public"."auditoria_lote";
+ SELECT auditoria_lote.id_auditoria_lote AS id_auditoria,
+    'LOTE'::text AS tipo_auditoria,
+    auditoria_lote.tipo_acao,
+    auditoria_lote.data,
+    auditoria_lote.hora,
+    auditoria_lote.descricao_acao,
+    auditoria_lote.id_lote AS id_usuario_afetado
+   FROM public.auditoria_lote;
 
 
-ALTER VIEW "public"."view_auditoria_geral" OWNER TO "postgres";
+--
+-- Name: view_estoque_atual_produto; Type: VIEW; Schema: public; Owner: -
+--
 
+CREATE VIEW public.view_estoque_atual_produto AS
+ SELECT p.id_produto,
+    p.nome_produto,
+    sum(l.quantidade) AS estoque_atual
+   FROM (public.produto p
+     JOIN public.lote l ON ((p.id_produto = l.id_produto_lote)))
+  GROUP BY p.id_produto, p.nome_produto;
 
-CREATE OR REPLACE VIEW "public"."view_estoque_atual_produto" AS
- SELECT "p"."id_produto",
-    "p"."nome_produto",
-    "sum"("l"."quantidade") AS "estoque_atual"
-   FROM ("public"."produto" "p"
-     JOIN "public"."lote" "l" ON (("p"."id_produto" = "l"."id_produto_lote")))
-  GROUP BY "p"."id_produto", "p"."nome_produto";
 
+--
+-- Name: view_ranking_maiores_doadores; Type: VIEW; Schema: public; Owner: -
+--
 
-ALTER VIEW "public"."view_estoque_atual_produto" OWNER TO "postgres";
+CREATE VIEW public.view_ranking_maiores_doadores AS
+ SELECT u.id_usuario AS id_doador,
+    u.nome AS nome_doador,
+    count(d.id_doacao) AS quantidade_total_doacoes,
+    max(d.data_doacao) AS ultima_doacao
+   FROM (public.usuario u
+     JOIN public.doacao d ON ((u.id_usuario = d.id_usuario_receptor)))
+  GROUP BY u.id_usuario, u.nome
+  ORDER BY (count(d.id_doacao)) DESC;
 
 
-CREATE OR REPLACE VIEW "public"."view_ranking_maiores_doadores" AS
- SELECT "u"."id_usuario" AS "id_doador",
-    "u"."nome" AS "nome_doador",
-    "count"("d"."id_doacao") AS "quantidade_total_doacoes",
-    "max"("d"."data_doacao") AS "ultima_doacao"
-   FROM ("public"."usuario" "u"
-     JOIN "public"."doacao" "d" ON (("u"."id_usuario" = "d"."id_usuario_receptor")))
-  GROUP BY "u"."id_usuario", "u"."nome"
-  ORDER BY ("count"("d"."id_doacao")) DESC;
+--
+-- Name: alerta_validade alerta_validade_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.alerta_validade
+    ADD CONSTRAINT alerta_validade_pkey PRIMARY KEY (id_alerta);
 
-ALTER VIEW "public"."view_ranking_maiores_doadores" OWNER TO "postgres";
 
+--
+-- Name: auditoria_lote auditoria_lote_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."alerta_validade"
-    ADD CONSTRAINT "alerta_validade_pkey" PRIMARY KEY ("id_alerta");
+ALTER TABLE ONLY public.auditoria_lote
+    ADD CONSTRAINT auditoria_lote_pkey PRIMARY KEY (id_auditoria_lote);
 
 
+--
+-- Name: auditoria_produto auditoria_produto_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_lote"
-    ADD CONSTRAINT "auditoria_lote_pkey" PRIMARY KEY ("id_auditoria_lote");
+ALTER TABLE ONLY public.auditoria_produto
+    ADD CONSTRAINT auditoria_produto_pkey PRIMARY KEY (id_auditoria_produto);
 
 
+--
+-- Name: auditoria_usuario auditoria_usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_produto"
-    ADD CONSTRAINT "auditoria_produto_pkey" PRIMARY KEY ("id_auditoria_produto");
+ALTER TABLE ONLY public.auditoria_usuario
+    ADD CONSTRAINT auditoria_usuario_pkey PRIMARY KEY (id_auditoria_usuario);
 
 
+--
+-- Name: coleta coleta_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_usuario"
-    ADD CONSTRAINT "auditoria_usuario_pkey" PRIMARY KEY ("id_auditoria_usuario");
+ALTER TABLE ONLY public.coleta
+    ADD CONSTRAINT coleta_pkey PRIMARY KEY (id_coleta);
 
 
+--
+-- Name: doacao doacao_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."coleta"
-    ADD CONSTRAINT "coleta_pkey" PRIMARY KEY ("id_coleta");
+ALTER TABLE ONLY public.doacao
+    ADD CONSTRAINT doacao_pkey PRIMARY KEY (id_doacao);
 
 
+--
+-- Name: estoque estoque_id_lote_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."doacao"
-    ADD CONSTRAINT "doacao_pkey" PRIMARY KEY ("id_doacao");
+ALTER TABLE ONLY public.estoque
+    ADD CONSTRAINT estoque_id_lote_unique UNIQUE (id_lote);
 
 
+--
+-- Name: estoque estoque_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."estoque"
-    ADD CONSTRAINT "estoque_pkey" PRIMARY KEY ("id_estoque");
+ALTER TABLE ONLY public.estoque
+    ADD CONSTRAINT estoque_pkey PRIMARY KEY (id_estoque);
 
 
+--
+-- Name: instituicao_receptora instituicao_receptora_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."instituicao_receptora"
-    ADD CONSTRAINT "instituicao_receptora_pkey" PRIMARY KEY ("id_usuario_receptor");
+ALTER TABLE ONLY public.instituicao_receptora
+    ADD CONSTRAINT instituicao_receptora_pkey PRIMARY KEY (id_usuario_receptor);
 
 
+--
+-- Name: item_doacao item_doacao_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."item_doacao"
-    ADD CONSTRAINT "item_doacao_pkey" PRIMARY KEY ("id_item_doacao");
+ALTER TABLE ONLY public.item_doacao
+    ADD CONSTRAINT item_doacao_pkey PRIMARY KEY (id_item_doacao);
 
 
+--
+-- Name: lote lote_pkey1; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."lote"
-    ADD CONSTRAINT "lote_pkey1" PRIMARY KEY ("id_lote");
+ALTER TABLE ONLY public.lote
+    ADD CONSTRAINT lote_pkey1 PRIMARY KEY (id_lote);
 
 
+--
+-- Name: movimentacao_estoque movimentacao_estoque_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."movimentacao_estoque"
-    ADD CONSTRAINT "movimentacao_estoque_pkey" PRIMARY KEY ("id_movimentacao");
+ALTER TABLE ONLY public.movimentacao_estoque
+    ADD CONSTRAINT movimentacao_estoque_pkey PRIMARY KEY (id_movimentacao);
 
 
+--
+-- Name: produto_categoria produto_categoria_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."produto_categoria"
-    ADD CONSTRAINT "produto_categoria_pkey" PRIMARY KEY ("id_categoria");
+ALTER TABLE ONLY public.produto_categoria
+    ADD CONSTRAINT produto_categoria_pkey PRIMARY KEY (id_categoria);
 
 
+--
+-- Name: produto produto_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."produto"
-    ADD CONSTRAINT "produto_pkey" PRIMARY KEY ("id_produto");
+ALTER TABLE ONLY public.produto
+    ADD CONSTRAINT produto_pkey PRIMARY KEY (id_produto);
 
 
+--
+-- Name: solicitacao_doacao solicitacao_doacao_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."solicitacao_doacao"
-    ADD CONSTRAINT "solicitacao_doacao_pkey" PRIMARY KEY ("id_solicitacao");
+ALTER TABLE ONLY public.solicitacao_doacao
+    ADD CONSTRAINT solicitacao_doacao_pkey PRIMARY KEY (id_solicitacao);
 
 
+--
+-- Name: telefone_usuario telefone_usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario"
-    ADD CONSTRAINT "usuario_auth_id_key" UNIQUE ("auth_id");
+ALTER TABLE ONLY public.telefone_usuario
+    ADD CONSTRAINT telefone_usuario_pkey PRIMARY KEY (id_telefone);
 
 
+--
+-- Name: telefone_usuario telefone_usuario_telefone_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario"
-    ADD CONSTRAINT "usuario_email_key" UNIQUE ("email");
+ALTER TABLE ONLY public.telefone_usuario
+    ADD CONSTRAINT telefone_usuario_telefone_key UNIQUE (telefone);
 
 
+--
+-- Name: usuario usuario_auth_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_mercado"
-    ADD CONSTRAINT "usuario_mercado_cnpj_key" UNIQUE ("cnpj");
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_auth_id_key UNIQUE (auth_id);
 
 
+--
+-- Name: usuario usuario_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_mercado"
-    ADD CONSTRAINT "usuario_mercado_pkey" PRIMARY KEY ("id_usuario_mercado");
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_email_key UNIQUE (email);
 
 
+--
+-- Name: usuario_mercado usuario_mercado_cnpj_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_pessoa"
-    ADD CONSTRAINT "usuario_pessoa_cpf_key" UNIQUE ("cpf");
+ALTER TABLE ONLY public.usuario_mercado
+    ADD CONSTRAINT usuario_mercado_cnpj_key UNIQUE (cnpj);
 
 
+--
+-- Name: usuario_mercado usuario_mercado_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_pessoa"
-    ADD CONSTRAINT "usuario_pessoa_pkey" PRIMARY KEY ("id_usuario_pessoa");
+ALTER TABLE ONLY public.usuario_mercado
+    ADD CONSTRAINT usuario_mercado_pkey PRIMARY KEY (id_usuario_mercado);
 
 
+--
+-- Name: usuario_pessoa usuario_pessoa_cpf_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario"
-    ADD CONSTRAINT "usuario_pkey" PRIMARY KEY ("id_usuario");
+ALTER TABLE ONLY public.usuario_pessoa
+    ADD CONSTRAINT usuario_pessoa_cpf_key UNIQUE (cpf);
 
 
+--
+-- Name: usuario_pessoa usuario_pessoa_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "tg_registrar_movimentacao" AFTER UPDATE ON "public"."estoque" FOR EACH ROW EXECUTE FUNCTION "public"."fn_registrar_movimentacao"();
+ALTER TABLE ONLY public.usuario_pessoa
+    ADD CONSTRAINT usuario_pessoa_pkey PRIMARY KEY (id_usuario_pessoa);
 
 
+--
+-- Name: usuario usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "tg_verificar_estoque_negativo" BEFORE UPDATE ON "public"."estoque" FOR EACH ROW EXECUTE FUNCTION "public"."fn_verificar_estoque_negativo"();
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_pkey PRIMARY KEY (id_usuario);
 
 
+--
+-- Name: estoque tg_verificar_estoque_negativo; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "tr_atualizar_estoque_lote" AFTER INSERT ON "public"."lote" FOR EACH ROW EXECUTE FUNCTION "public"."fn_atualizar_estoque_lote"();
+CREATE TRIGGER tg_verificar_estoque_negativo BEFORE UPDATE ON public.estoque FOR EACH ROW EXECUTE FUNCTION public.fn_verificar_estoque_negativo();
 
 
+--
+-- Name: item_doacao tgr_atualizar_estoque; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_auditoria_lote" AFTER INSERT OR DELETE OR UPDATE ON "public"."lote" FOR EACH ROW EXECUTE FUNCTION "public"."fn_auditoria_lote"();
+CREATE TRIGGER tgr_atualizar_estoque AFTER INSERT ON public.item_doacao FOR EACH ROW EXECUTE FUNCTION public.fn_atualizar_estoque();
 
 
+--
+-- Name: coleta tgr_atualizar_status_doacao; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_auditoria_produto" AFTER INSERT OR DELETE OR UPDATE ON "public"."produto" FOR EACH ROW EXECUTE FUNCTION "public"."fn_auditoria_produto"();
+CREATE TRIGGER tgr_atualizar_status_doacao AFTER UPDATE ON public.coleta FOR EACH ROW EXECUTE FUNCTION public.fn_atualizar_status_doacao();
 
 
+--
+-- Name: item_doacao tgr_registrar_movimentacao; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_chamar_verificar_validade" AFTER INSERT ON "public"."lote" FOR EACH ROW EXECUTE FUNCTION "public"."fn_chamar_verificar_validade"();
+CREATE TRIGGER tgr_registrar_movimentacao AFTER INSERT ON public.item_doacao FOR EACH ROW EXECUTE FUNCTION public.fn_registrar_movimentacao();
 
 
+--
+-- Name: lote tr_atualizar_estoque_lote; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_usuario_delete" AFTER DELETE ON "public"."usuario" FOR EACH ROW EXECUTE FUNCTION "public"."fn_auditoria_usuario"();
+CREATE TRIGGER tr_atualizar_estoque_lote AFTER INSERT ON public.lote FOR EACH ROW EXECUTE FUNCTION public.fn_atualizar_estoque_lote();
 
 
+--
+-- Name: lote trg_auditoria_lote; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_usuario_insert" AFTER INSERT ON "public"."usuario" FOR EACH ROW EXECUTE FUNCTION "public"."fn_auditoria_usuario"();
+CREATE TRIGGER trg_auditoria_lote AFTER INSERT OR DELETE OR UPDATE ON public.lote FOR EACH ROW EXECUTE FUNCTION public.fn_auditoria_lote();
 
 
+--
+-- Name: produto trg_auditoria_produto; Type: TRIGGER; Schema: public; Owner: -
+--
 
-CREATE OR REPLACE TRIGGER "trg_usuario_update" AFTER UPDATE ON "public"."usuario" FOR EACH ROW EXECUTE FUNCTION "public"."fn_auditoria_usuario"();
+CREATE TRIGGER trg_auditoria_produto AFTER INSERT OR DELETE OR UPDATE ON public.produto FOR EACH ROW EXECUTE FUNCTION public.fn_auditoria_produto();
 
 
+--
+-- Name: lote trg_chamar_verificar_validade; Type: TRIGGER; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."alerta_validade"
-    ADD CONSTRAINT "alerta_validade_id_lote_alerta_fkey" FOREIGN KEY ("id_lote_alerta") REFERENCES "public"."lote"("id_lote");
+CREATE TRIGGER trg_chamar_verificar_validade AFTER INSERT ON public.lote FOR EACH ROW EXECUTE FUNCTION public.fn_chamar_verificar_validade();
 
 
+--
+-- Name: usuario trg_usuario_delete; Type: TRIGGER; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_lote"
-    ADD CONSTRAINT "auditoria_lote_id_lote_fkey" FOREIGN KEY ("id_lote") REFERENCES "public"."lote"("id_lote");
+CREATE TRIGGER trg_usuario_delete AFTER DELETE ON public.usuario FOR EACH ROW EXECUTE FUNCTION public.fn_auditoria_usuario();
 
 
+--
+-- Name: usuario trg_usuario_insert; Type: TRIGGER; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_lote"
-    ADD CONSTRAINT "auditoria_lote_id_usuario_fkey" FOREIGN KEY ("id_usuario") REFERENCES "public"."usuario"("id_usuario");
+CREATE TRIGGER trg_usuario_insert AFTER INSERT ON public.usuario FOR EACH ROW EXECUTE FUNCTION public.fn_auditoria_usuario();
 
 
+--
+-- Name: usuario trg_usuario_update; Type: TRIGGER; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_produto"
-    ADD CONSTRAINT "auditoria_produto_ID_usuario_responsavel_fkey" FOREIGN KEY ("id_usuario_responsavel") REFERENCES "public"."usuario"("id_usuario");
+CREATE TRIGGER trg_usuario_update AFTER UPDATE ON public.usuario FOR EACH ROW EXECUTE FUNCTION public.fn_auditoria_usuario();
 
 
+--
+-- Name: alerta_validade alerta_validade_id_lote_alerta_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_produto"
-    ADD CONSTRAINT "auditoria_produto_id_produto_fkey" FOREIGN KEY ("id_produto") REFERENCES "public"."produto"("id_produto");
+ALTER TABLE ONLY public.alerta_validade
+    ADD CONSTRAINT alerta_validade_id_lote_alerta_fkey FOREIGN KEY (id_lote_alerta) REFERENCES public.lote(id_lote);
 
 
+--
+-- Name: auditoria_lote auditoria_lote_id_lote_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."auditoria_usuario"
-    ADD CONSTRAINT "auditoria_usuario_id_usuario_afetado_fkey" FOREIGN KEY ("id_usuario_afetado") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.auditoria_lote
+    ADD CONSTRAINT auditoria_lote_id_lote_fkey FOREIGN KEY (id_lote) REFERENCES public.lote(id_lote);
 
 
+--
+-- Name: auditoria_lote auditoria_lote_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."coleta"
-    ADD CONSTRAINT "coleta_id_doacao_fkey" FOREIGN KEY ("id_doacao") REFERENCES "public"."doacao"("id_doacao");
+ALTER TABLE ONLY public.auditoria_lote
+    ADD CONSTRAINT auditoria_lote_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: auditoria_produto auditoria_produto_ID_usuario_responsavel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."doacao"
-    ADD CONSTRAINT "doacao_id_usuario_receptor_fkey" FOREIGN KEY ("id_usuario_receptor") REFERENCES "public"."instituicao_receptora"("id_usuario_receptor");
+ALTER TABLE ONLY public.auditoria_produto
+    ADD CONSTRAINT "auditoria_produto_ID_usuario_responsavel_fkey" FOREIGN KEY (id_usuario_responsavel) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: auditoria_produto auditoria_produto_id_produto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."estoque"
-    ADD CONSTRAINT "estoque_id_lote_fkey" FOREIGN KEY ("id_lote") REFERENCES "public"."lote"("id_lote");
+ALTER TABLE ONLY public.auditoria_produto
+    ADD CONSTRAINT auditoria_produto_id_produto_fkey FOREIGN KEY (id_produto) REFERENCES public.produto(id_produto);
 
 
+--
+-- Name: auditoria_usuario auditoria_usuario_id_usuario_afetado_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."estoque"
-    ADD CONSTRAINT "estoque_id_usuario_fkey" FOREIGN KEY ("id_usuario") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.auditoria_usuario
+    ADD CONSTRAINT auditoria_usuario_id_usuario_afetado_fkey FOREIGN KEY (id_usuario_afetado) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: coleta coleta_id_doacao_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."instituicao_receptora"
-    ADD CONSTRAINT "instituicao_receptora_id_usuario_receptor_fkey" FOREIGN KEY ("id_usuario_receptor") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.coleta
+    ADD CONSTRAINT coleta_id_doacao_fkey FOREIGN KEY (id_doacao) REFERENCES public.doacao(id_doacao);
 
 
+--
+-- Name: doacao doacao_id_usuario_receptor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."item_doacao"
-    ADD CONSTRAINT "item_doacao_id_doacao_fkey" FOREIGN KEY ("id_doacao") REFERENCES "public"."doacao"("id_doacao");
+ALTER TABLE ONLY public.doacao
+    ADD CONSTRAINT doacao_id_usuario_receptor_fkey FOREIGN KEY (id_usuario_receptor) REFERENCES public.instituicao_receptora(id_usuario_receptor);
 
 
+--
+-- Name: estoque estoque_id_lote_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."item_doacao"
-    ADD CONSTRAINT "item_doacao_id_lote_fkey" FOREIGN KEY ("id_lote") REFERENCES "public"."lote"("id_lote");
+ALTER TABLE ONLY public.estoque
+    ADD CONSTRAINT estoque_id_lote_fkey FOREIGN KEY (id_lote) REFERENCES public.lote(id_lote);
 
 
+--
+-- Name: estoque estoque_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."lote"
-    ADD CONSTRAINT "lote_id_produto_lote_fkey" FOREIGN KEY ("id_produto_lote") REFERENCES "public"."produto"("id_produto");
+ALTER TABLE ONLY public.estoque
+    ADD CONSTRAINT estoque_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: instituicao_receptora instituicao_receptora_id_usuario_receptor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."movimentacao_estoque"
-    ADD CONSTRAINT "movimentacao_estoque_id_lote_fkey" FOREIGN KEY ("id_lote") REFERENCES "public"."lote"("id_lote");
+ALTER TABLE ONLY public.instituicao_receptora
+    ADD CONSTRAINT instituicao_receptora_id_usuario_receptor_fkey FOREIGN KEY (id_usuario_receptor) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: item_doacao item_doacao_id_doacao_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."movimentacao_estoque"
-    ADD CONSTRAINT "movimentacao_estoque_id_usuario_fkey" FOREIGN KEY ("id_usuario") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.item_doacao
+    ADD CONSTRAINT item_doacao_id_doacao_fkey FOREIGN KEY (id_doacao) REFERENCES public.doacao(id_doacao);
 
 
+--
+-- Name: item_doacao item_doacao_id_lote_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."produto"
-    ADD CONSTRAINT "produto_id_categoria_produto_fkey" FOREIGN KEY ("id_categoria_produto") REFERENCES "public"."produto_categoria"("id_categoria");
+ALTER TABLE ONLY public.item_doacao
+    ADD CONSTRAINT item_doacao_id_lote_fkey FOREIGN KEY (id_lote) REFERENCES public.lote(id_lote);
 
 
+--
+-- Name: lote lote_id_produto_lote_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."solicitacao_doacao"
-    ADD CONSTRAINT "solicitacao_doacao_id_usuario_solicitacao_fkey" FOREIGN KEY ("id_usuario_solicitacao") REFERENCES "public"."instituicao_receptora"("id_usuario_receptor");
+ALTER TABLE ONLY public.lote
+    ADD CONSTRAINT lote_id_produto_lote_fkey FOREIGN KEY (id_produto_lote) REFERENCES public.produto(id_produto);
 
 
+--
+-- Name: movimentacao_estoque movimentacao_estoque_id_lote_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario"
-    ADD CONSTRAINT "usuario_auth_id_fkey" FOREIGN KEY ("auth_id") REFERENCES "auth"."users"("id");
+ALTER TABLE ONLY public.movimentacao_estoque
+    ADD CONSTRAINT movimentacao_estoque_id_lote_fkey FOREIGN KEY (id_lote) REFERENCES public.lote(id_lote);
 
 
+--
+-- Name: movimentacao_estoque movimentacao_estoque_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_mercado"
-    ADD CONSTRAINT "usuario_mercado_id_usuario_mercado_fkey" FOREIGN KEY ("id_usuario_mercado") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.movimentacao_estoque
+    ADD CONSTRAINT movimentacao_estoque_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario);
 
 
+--
+-- Name: produto produto_id_categoria_produto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE ONLY "public"."usuario_pessoa"
-    ADD CONSTRAINT "usuario_pessoa_id_usuario_pessoa_fkey" FOREIGN KEY ("id_usuario_pessoa") REFERENCES "public"."usuario"("id_usuario");
+ALTER TABLE ONLY public.produto
+    ADD CONSTRAINT produto_id_categoria_produto_fkey FOREIGN KEY (id_categoria_produto) REFERENCES public.produto_categoria(id_categoria);
 
 
+--
+-- Name: solicitacao_doacao solicitacao_doacao_id_usuario_receptor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."alerta_validade" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.solicitacao_doacao
+    ADD CONSTRAINT solicitacao_doacao_id_usuario_receptor_fkey FOREIGN KEY (id_usuario_receptor) REFERENCES public.instituicao_receptora(id_usuario_receptor);
 
 
-ALTER TABLE "public"."auditoria_lote" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: telefone_usuario telefone_usuario_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.telefone_usuario
+    ADD CONSTRAINT telefone_usuario_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario);
 
-ALTER TABLE "public"."auditoria_produto" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: usuario usuario_auth_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."auditoria_usuario" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT usuario_auth_id_fkey FOREIGN KEY (auth_id) REFERENCES auth.users(id);
 
 
-ALTER TABLE "public"."coleta" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: usuario_mercado usuario_mercado_id_usuario_mercado_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
+ALTER TABLE ONLY public.usuario_mercado
+    ADD CONSTRAINT usuario_mercado_id_usuario_mercado_fkey FOREIGN KEY (id_usuario_mercado) REFERENCES public.usuario(id_usuario);
 
-ALTER TABLE "public"."doacao" ENABLE ROW LEVEL SECURITY;
 
+--
+-- Name: usuario_pessoa usuario_pessoa_id_usuario_pessoa_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
 
-ALTER TABLE "public"."estoque" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ONLY public.usuario_pessoa
+    ADD CONSTRAINT usuario_pessoa_id_usuario_pessoa_fkey FOREIGN KEY (id_usuario_pessoa) REFERENCES public.usuario(id_usuario);
 
 
-ALTER TABLE "public"."instituicao_receptora" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: coleta; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.coleta ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."item_doacao" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: doacao; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.doacao ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."lote" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: instituicao_receptora; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.instituicao_receptora ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."movimentacao_estoque" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: item_doacao; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.item_doacao ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."produto" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: movimentacao_estoque; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.movimentacao_estoque ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."produto_categoria" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: solicitacao_doacao; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.solicitacao_doacao ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."solicitacao_doacao" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: telefone_usuario; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.telefone_usuario ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."usuario" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: usuario; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.usuario ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."usuario_mercado" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: usuario_mercado; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.usuario_mercado ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE "public"."usuario_pessoa" ENABLE ROW LEVEL SECURITY;
+--
+-- Name: usuario_pessoa; Type: ROW SECURITY; Schema: public; Owner: -
+--
 
+ALTER TABLE public.usuario_pessoa ENABLE ROW LEVEL SECURITY;
 
-GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT USAGE ON SCHEMA "public" TO "authenticated";
-GRANT USAGE ON SCHEMA "public" TO "service_role";
+--
+-- PostgreSQL database dump complete
+--
 
+\unrestrict WZKRYjEDPDIP43duDbZxnqMg27Ki9tXHEK0PRmyZdYgAKK5jjeh3ll6BmfEXEf5
 
-
-GRANT ALL ON FUNCTION "public"."fn_atualizar_estoque_lote"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_atualizar_estoque_lote"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_atualizar_estoque_lote"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_auditoria_lote"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_lote"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_lote"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_auditoria_produto"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_produto"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_produto"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_auditoria_usuario"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_usuario"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_auditoria_usuario"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_chamar_verificar_validade"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_chamar_verificar_validade"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_chamar_verificar_validade"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_criar_alerta_validade"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_criar_alerta_validade"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_criar_alerta_validade"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_registrar_movimentacao"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_registrar_movimentacao"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_registrar_movimentacao"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."fn_verificar_estoque_negativo"() TO "anon";
-GRANT ALL ON FUNCTION "public"."fn_verificar_estoque_negativo"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."fn_verificar_estoque_negativo"() TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "anon";
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."rls_auto_enable"() TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_adicionar_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_adicionar_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_adicionar_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_alterar_usuario"(IN "p_id_usuario" integer, IN "p_nome" character varying, IN "p_email" character varying, IN "p_telefone" character varying) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_alterar_usuario"(IN "p_id_usuario" integer, IN "p_nome" character varying, IN "p_email" character varying, IN "p_telefone" character varying) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_alterar_usuario"(IN "p_id_usuario" integer, IN "p_nome" character varying, IN "p_email" character varying, IN "p_telefone" character varying) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_estoque"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_estoque"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_estoque"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_quantidade"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_quantidade"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_atualizar_quantidade"(IN "p_id_estoque" integer, IN "p_nova_quantidade" integer) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_telefone" character varying) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_telefone" character varying) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_telefone" character varying) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_id_usuario" integer, IN "p_telefone" character varying) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_id_usuario" integer, IN "p_telefone" character varying) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_criar_usuario"(IN "p_nome" character varying, IN "p_email" character varying, IN "p_senha" character varying, IN "p_id_usuario" integer, IN "p_telefone" character varying) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_desativar_usuario"(IN "p_id_usuario" integer) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_desativar_usuario"(IN "p_id_usuario" integer) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_desativar_usuario"(IN "p_id_usuario" integer) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_limpar_alertas_resolvidos"() TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_limpar_alertas_resolvidos"() TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_limpar_alertas_resolvidos"() TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_remover_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_remover_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_remover_estoque"(IN "p_id_estoque" integer, IN "p_quantidade" integer) TO "service_role";
-
-
-
-GRANT ALL ON PROCEDURE "public"."sp_verificar_validade"() TO "anon";
-GRANT ALL ON PROCEDURE "public"."sp_verificar_validade"() TO "authenticated";
-GRANT ALL ON PROCEDURE "public"."sp_verificar_validade"() TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."alerta_validade" TO "anon";
-GRANT ALL ON TABLE "public"."alerta_validade" TO "authenticated";
-GRANT ALL ON TABLE "public"."alerta_validade" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."alerta_validade_id_alerta_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."alerta_validade_id_alerta_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."alerta_validade_id_alerta_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."auditoria_lote" TO "anon";
-GRANT ALL ON TABLE "public"."auditoria_lote" TO "authenticated";
-GRANT ALL ON TABLE "public"."auditoria_lote" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."auditoria_lote_id_auditoria_lote_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."auditoria_lote_id_auditoria_lote_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."auditoria_lote_id_auditoria_lote_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."auditoria_produto" TO "anon";
-GRANT ALL ON TABLE "public"."auditoria_produto" TO "authenticated";
-GRANT ALL ON TABLE "public"."auditoria_produto" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."auditoria_produto_id_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."auditoria_produto_id_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."auditoria_produto_id_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."auditoria_usuario" TO "anon";
-GRANT ALL ON TABLE "public"."auditoria_usuario" TO "authenticated";
-GRANT ALL ON TABLE "public"."auditoria_usuario" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."auditoria_usuario_id_auditoria_usuario_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."auditoria_usuario_id_auditoria_usuario_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."auditoria_usuario_id_auditoria_usuario_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."coleta" TO "anon";
-GRANT ALL ON TABLE "public"."coleta" TO "authenticated";
-GRANT ALL ON TABLE "public"."coleta" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."coleta_id_coleta_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."coleta_id_coleta_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."coleta_id_coleta_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."doacao" TO "anon";
-GRANT ALL ON TABLE "public"."doacao" TO "authenticated";
-GRANT ALL ON TABLE "public"."doacao" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."doacao_id_doacao_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."doacao_id_doacao_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."doacao_id_doacao_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."estoque" TO "anon";
-GRANT ALL ON TABLE "public"."estoque" TO "authenticated";
-GRANT ALL ON TABLE "public"."estoque" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."estoque_id_estoque_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."estoque_id_estoque_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."estoque_id_estoque_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."instituicao_receptora" TO "anon";
-GRANT ALL ON TABLE "public"."instituicao_receptora" TO "authenticated";
-GRANT ALL ON TABLE "public"."instituicao_receptora" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."instituicao_receptora_id_usuario_receptor_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."instituicao_receptora_id_usuario_receptor_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."instituicao_receptora_id_usuario_receptor_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."item_doacao" TO "anon";
-GRANT ALL ON TABLE "public"."item_doacao" TO "authenticated";
-GRANT ALL ON TABLE "public"."item_doacao" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."item_doacao_id_item_doacao_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."item_doacao_id_item_doacao_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."item_doacao_id_item_doacao_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."lote" TO "anon";
-GRANT ALL ON TABLE "public"."lote" TO "authenticated";
-GRANT ALL ON TABLE "public"."lote" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."lote_id_lote_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."lote_id_lote_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."lote_id_lote_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."movimentacao_estoque" TO "anon";
-GRANT ALL ON TABLE "public"."movimentacao_estoque" TO "authenticated";
-GRANT ALL ON TABLE "public"."movimentacao_estoque" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."movimentacao_estoque_id_movimentacao_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."movimentacao_estoque_id_movimentacao_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."movimentacao_estoque_id_movimentacao_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."produto" TO "anon";
-GRANT ALL ON TABLE "public"."produto" TO "authenticated";
-GRANT ALL ON TABLE "public"."produto" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."produto_categoria" TO "anon";
-GRANT ALL ON TABLE "public"."produto_categoria" TO "authenticated";
-GRANT ALL ON TABLE "public"."produto_categoria" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."produto_categoria_id_categoria_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."produto_categoria_id_categoria_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."produto_categoria_id_categoria_seq" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."produto_id_produto_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."produto_id_produto_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."produto_id_produto_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."solicitacao_doacao" TO "anon";
-GRANT ALL ON TABLE "public"."solicitacao_doacao" TO "authenticated";
-GRANT ALL ON TABLE "public"."solicitacao_doacao" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."solicitacao_doacao_id_solicitacao_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."solicitacao_doacao_id_solicitacao_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."solicitacao_doacao_id_solicitacao_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."usuario" TO "anon";
-GRANT ALL ON TABLE "public"."usuario" TO "authenticated";
-GRANT ALL ON TABLE "public"."usuario" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."usuario_id_usuario_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."usuario_id_usuario_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."usuario_id_usuario_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."usuario_mercado" TO "anon";
-GRANT ALL ON TABLE "public"."usuario_mercado" TO "authenticated";
-GRANT ALL ON TABLE "public"."usuario_mercado" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."usuario_mercado_id_usuario_mercado_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."usuario_mercado_id_usuario_mercado_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."usuario_mercado_id_usuario_mercado_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."usuario_pessoa" TO "anon";
-GRANT ALL ON TABLE "public"."usuario_pessoa" TO "authenticated";
-GRANT ALL ON TABLE "public"."usuario_pessoa" TO "service_role";
-
-
-
-GRANT ALL ON SEQUENCE "public"."usuario_pessoa_id_usuario_pessoa_seq" TO "anon";
-GRANT ALL ON SEQUENCE "public"."usuario_pessoa_id_usuario_pessoa_seq" TO "authenticated";
-GRANT ALL ON SEQUENCE "public"."usuario_pessoa_id_usuario_pessoa_seq" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_itens_de_cada_doacao" TO "anon";
-GRANT ALL ON TABLE "public"."v_itens_de_cada_doacao" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_itens_de_cada_doacao" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."view_auditoria_geral" TO "anon";
-GRANT ALL ON TABLE "public"."view_auditoria_geral" TO "authenticated";
-GRANT ALL ON TABLE "public"."view_auditoria_geral" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."view_estoque_atual_produto" TO "anon";
-GRANT ALL ON TABLE "public"."view_estoque_atual_produto" TO "authenticated";
-GRANT ALL ON TABLE "public"."view_estoque_atual_produto" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."view_ranking_maiores_doadores" TO "anon";
-GRANT ALL ON TABLE "public"."view_ranking_maiores_doadores" TO "authenticated";
-GRANT ALL ON TABLE "public"."view_ranking_maiores_doadores" TO "service_role";
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
-
-
-
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
-
-
-
-
-
-
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
