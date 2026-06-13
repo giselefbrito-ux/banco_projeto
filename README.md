@@ -118,6 +118,11 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; Além disso, foram corrigidas inconsistências na tabela estoque, garantindo que cada lote possua apenas um registro de estoque e que todo estoque tenha um usuário responsável. Por fim, foram adicionadas restrições CHECK para padronizar os campos de status, evitando valores inconsistentes no banco.
 </p>
+<p align="justify">
+Mais detalhes podem ser vistos no seguinte arquivo:
+</p>
+
+📄 [Normalização do Banco](normalizacao_banco.sql)
 
 ## 2. Criação das Tabelas
 <p align="justify">
@@ -156,7 +161,7 @@ O script SQL completo utilizado para a criação das tabelas encontra-se dispon�
 
 📄 [Criação de Tabelas](criacao_tabelas.sql)
 
-# MODELO FÍSICO
+# Modelo Físico
 
 <p align="justify">
 &emsp;&emsp;&emsp;&emsp; Após  a finalização do modelo lógico, foi realizada a implementação do banco de dados na plataforma Supabase. Nesta etapa, foram criadas as tabelas, os atributos, as chaves 	primárias e estrangeiras, além das demais restrições necessárias para o funcionamento do sistema.
@@ -179,3 +184,63 @@ Link do documento com a população do banco:
 </p>
 
 📄 [Seeds do Banco](seeds_banco.sql)
+
+## 1. Recursos Avançados do Banco de Dados
+
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; As consultas SQL foram utilizadas para validar o funcionamento do banco de dados e verificar a integridade das informações armazenadas. Por meio dessas consultas foi possível realizar operações de busca, filtragem e análise dos dados relacionados aos usuários, produtos, lotes,estoque, doações, auditorias e alertas de validade.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Além disso, algumas consultas foram utilizadas durante os testes das triggers e procedures implementadas, permitindo verificar o correto funcionamento das automações desenvolvidas no sistema.
+</p>
+
+### Functions
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; As functions foram implementadas para concentrar regras de negócio executadas diretamente no banco de dados. Essas funções servem de apoio para as triggers e procedures do sistema, realizando verificações e processamentos relacionados ao controle de estoque, auditorias e monitoramento da validade dos produtos cadastrados.
+</p>
+
+### Procedures
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; 	As procedures foram desenvolvidas para automatizar operações mais complexas do sistema, permitindo a execução de múltiplas instruções SQL de forma organizada e padronizada. Entre suas principais finalidades estão o gerenciamento de usuários, o controle de estoque, o processamento de doações e a verificação da situação dos lotes armazenados.
+</p>
+
+### Triggers
+
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; As triggers foram utilizadas para executar ações automáticas sempre que determinados eventos ocorrem nas tabelas do banco de dados. Por meio dessas automações foi possível implementar auditorias, monitorar alterações no estoque, gerar alertas de validade e registrar movimentações realizadas pelos usuários.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Destaca-se a trigger de registro de movimentação de estoque, responsável por identificar alterações nas quantidades armazenadas e registrar automaticamente operações de entrada e saída na tabela de movimentação de estoque, contribuindo para a rastreabilidade e controle das operações realizadas no sistema.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Os scripts completos das functions, procedures e triggers implementadas encontram-se disponíveis no arquivo schema.sql, previamente referenciado neste documento e disponibilizado no repositório do projeto.
+</p>
+
+# 📝 Considerações Finais
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Ao longo do desenvolvimento do projeto foi possível aplicar, na prática, conceitos trabalhados na disciplina de Banco de Dados por meio da construção de um sistema voltado ao gerenciamento de doações e controle de estoque de alimentos. A proposta foi inspirada em situações relacionadas ao contexto da Universidade de Pernambuco (UPE), buscando oferecer soluções que contribuam para uma gestão mais organizada dos alimentos recebidos e distribuídos.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Durante a elaboração do projeto, foram desenvolvidos o minimundo, os modelos conceitual,   lógico e   físico, além da implementação do banco de dados na plataforma Supabase. Também foram criados mecanismos utilizando os procedures e triggers para automatizar operações e garantir maior controle sobre as informações armazenadas.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; A modelagem realizada  permitiu representar entidades importantes para o funcionamento do sistema, como usuários, produtos, instituições beneficiadas e estoque, estabelecendo relacionamentos que garantem a integridade e consistência dos dados. Além disso, o processo de povoamento possibilitou validar a estrutura criada e verificar o funcionamento das funcionalidades implementadas.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; O desenvolvimento deste trabalho proporcionou uma melhor compreensão sobre as etapas envolvidas na criação de um banco de dados, desde o levantamento dos requisitos até a implementação final. A experiência também contribuiu para o aprimoramento dos conhecimentos em modelagem, linguagem SQL e administração de bancos de dados.   Por fim, considera-se que os objetivos propostos foram alcançados, resultando em uma base de dados capaz de atender às necessidades do sistema desenvolvido e servir como apoio para o gerenciamento e rastreabilidade das doações e dos alimentos armazenados.
+</p>
+
+# 👥 Autoria
+
+**Autores:**
+
+- Alexandre Ferreira Bispo
+- Ana Karla de Lemos da Silva
+- Gisele Freitas de Brito
+- João Pedro Rufino Coelho
+
+**Disciplina:** Banco de Dados
+
+**Curso:** Licenciatura em Computação
+
+**Instituição:** Universidade de Pernambuco (UPE) – Campus Garanhuns
