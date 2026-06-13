@@ -80,6 +80,10 @@ ALTER TABLE alerta_validade
 ADD CONSTRAINT chk_status_alerta
 CHECK (status_alerta IN ('MONITORAMENTO', 'URGENTE', 'ATENCAO'));
 
+ALTER TABLE movimentacao_estoque
+ADD CONSTRAINT chk_tipo_movimentacao
+CHECK (tipo_movimentacao IN ('ENTRADA', 'SAIDA'));
+
 -- 8. Padronização do status da instituição receptora
 UPDATE instituicao_receptora
 SET status = 'Ativa'
