@@ -109,6 +109,15 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 <img width="1570" height="868" alt="modelo_logico(supabase)_corrigido" src="https://github.com/user-attachments/assets/e2a8f332-7887-484e-8f82-e0040dc0f48f" />
 
 ## 1. Normalização do Banco
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Durante a normalização do banco SafeFood, foram realizados ajustes para reduzir redundâncias e melhorar a integridade dos dados. O campo telefone foi removido da tabela usuario e separado em uma nova tabela chamada telefone_usuario, permitindo melhor organização e validação dos números cadastrados.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Também foi removido o atributo item_doacao da tabela item_doacao, pois o nome do produto já pode ser obtido por meio do relacionamento entre item_doacao, lote e produto, evitando repetição de informações.
+</p>
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; Além disso, foram corrigidas inconsistências na tabela estoque, garantindo que cada lote possua apenas um registro de estoque e que todo estoque tenha um usuário responsável. Por fim, foram adicionadas restrições CHECK para padronizar os campos de status, evitando valores inconsistentes no banco.
+</p>
 
 ## 2. Criação das Tabelas
 <p align="justify">
