@@ -145,7 +145,7 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
 </p>
 
-📄 [Criação de Tabelas](./Criação%20de%20Tabelas)
+📄 [Criação de Tabelas](criacao_tabelas.sql)
 
 # MODELO FÍSICO
 
@@ -168,4 +168,5 @@ O script SQL completo utilizado para a criação das tabelas encontra-se dispon�
 <p align="justify">
 Link do documento com a população do banco: 
 </p>
-📄 [Seeds do Banco](./seeds_banco.sql)
+
+📄 [Seeds do Banco](seeds_banco.sql)
