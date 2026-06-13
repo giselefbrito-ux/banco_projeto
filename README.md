@@ -106,7 +106,7 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 <img width="4113" height="1755" alt="model_logico(ERDplus)" src="https://github.com/user-attachments/assets/d660b956-fb18-4e6d-8e71-cb6c7fb96f5c" />
 
 ### Figura 2 — Modelo Lógico Final Implementado no Supabase
-<img width="1570" height="868" alt="modelo_logico(supabase)_corrigido" src="https://github.com/user-attachments/assets/e2a8f332-7887-484e-8f82-e0040dc0f48f" />
+<img width="1570" height="868" alt="modelo_logico(supabase)_corrigido (1)" src="https://github.com/user-attachments/assets/450e618a-61a8-45d5-9fe1-b4e0cc60fe48" />
 
 ## 1. Normalização do Banco
 <p align="justify">
