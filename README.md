@@ -140,3 +140,10 @@ Embora tenha sido inspirado pela realidade da UPE, o sistema não foi pensado ap
 * Auditoria Usuário
 * Auditoria Produto
 * Auditoria Lote
+
+<p align="justify">
+&emsp;&emsp;&emsp;&emsp; O script SQL completo utilizado para a criação das tabelas encontra-se disponível no seguinte arquivo, presente no repositório do projeto: 
+</p>
+
+📄 [Criação de Tabelas](./Criação%20de%20Tabelas)
+
