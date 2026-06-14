@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict pgfM3NvgalwBr1sEcbfCJcYiuK5u2XasTmRtioaBTK29nWbZ6QqL6dOugB1srBG
+\restrict kQMSrlzL2qxey6VeZPWNmX1gwtsBejaaR8JpYADYFNcDxiYgB5b6zs3fmaqcR8F
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Ubuntu 18.3-1.pgdg25.10+1)
@@ -854,7 +854,8 @@ CREATE TABLE public.estoque (
     quantidade_atual bigint,
     local_armazenamento text,
     id_usuario integer NOT NULL,
-    id_lote integer
+    id_lote integer,
+    CONSTRAINT chk_quantidade_estoque CHECK ((quantidade_atual >= 0))
 );
 
 
@@ -881,6 +882,7 @@ CREATE TABLE public.instituicao_receptora (
     cnpj text,
     tipo_instituicao text,
     status text,
+    CONSTRAINT chk_instituicao_cnpj CHECK ((cnpj ~ '^[0-9]{14}$'::text)),
     CONSTRAINT chk_status_instituicao CHECK ((status = ANY (ARRAY['Ativa'::text, 'Inativa'::text])))
 );
 
@@ -908,7 +910,8 @@ CREATE TABLE public.item_doacao (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     quantidade integer,
     id_doacao bigint,
-    id_lote integer
+    id_lote integer,
+    CONSTRAINT chk_item_doacao_quantidade CHECK ((quantidade > 0))
 );
 
 
@@ -966,6 +969,7 @@ CREATE TABLE public.movimentacao_estoque (
     data_movimentacao date,
     id_lote integer,
     id_usuario integer,
+    CONSTRAINT chk_movimentacao_quantidade CHECK ((quantidade_movimentada > 0)),
     CONSTRAINT chk_tipo_movimentacao CHECK ((tipo_movimentacao = ANY (ARRAY['ENTRADA'::text, 'SAIDA'::text])))
 );
 
@@ -1158,7 +1162,8 @@ CREATE TABLE public.usuario_mercado (
     id_usuario_mercado integer NOT NULL,
     cnpj text NOT NULL,
     segmento text,
-    nome_fantasia text
+    nome_fantasia text,
+    CONSTRAINT chk_usuario_mercado_cnpj CHECK ((cnpj ~ '^[0-9]{14}$'::text))
 );
 
 
@@ -1183,7 +1188,8 @@ ALTER TABLE public.usuario_mercado ALTER COLUMN id_usuario_mercado ADD GENERATED
 CREATE TABLE public.usuario_pessoa (
     id_usuario_pessoa integer NOT NULL,
     cpf text NOT NULL,
-    data_nascimento text
+    data_nascimento text,
+    CONSTRAINT chk_usuario_pessoa_cpf CHECK ((cpf ~ '^[0-9]{11}$'::text))
 );
 
 
@@ -1411,6 +1417,38 @@ ALTER TABLE ONLY public.telefone_usuario
 
 ALTER TABLE ONLY public.telefone_usuario
     ADD CONSTRAINT telefone_usuario_telefone_key UNIQUE (telefone);
+
+
+--
+-- Name: instituicao_receptora uk_instituicao_cnpj; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.instituicao_receptora
+    ADD CONSTRAINT uk_instituicao_cnpj UNIQUE (cnpj);
+
+
+--
+-- Name: usuario uk_usuario_email; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario
+    ADD CONSTRAINT uk_usuario_email UNIQUE (email);
+
+
+--
+-- Name: usuario_mercado uk_usuario_mercado_cnpj; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario_mercado
+    ADD CONSTRAINT uk_usuario_mercado_cnpj UNIQUE (cnpj);
+
+
+--
+-- Name: usuario_pessoa uk_usuario_pessoa_cpf; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario_pessoa
+    ADD CONSTRAINT uk_usuario_pessoa_cpf UNIQUE (cpf);
 
 
 --
@@ -1750,5 +1788,5 @@ ALTER TABLE ONLY public.usuario_pessoa
 -- PostgreSQL database dump complete
 --
 
-\unrestrict pgfM3NvgalwBr1sEcbfCJcYiuK5u2XasTmRtioaBTK29nWbZ6QqL6dOugB1srBG
+\unrestrict kQMSrlzL2qxey6VeZPWNmX1gwtsBejaaR8JpYADYFNcDxiYgB5b6zs3fmaqcR8F
 
