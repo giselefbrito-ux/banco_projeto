@@ -235,7 +235,7 @@ Link do documento com a população do banco:
 
 **Autores:**
 
-- Alexandre Ferreira Bispo
+- Alexssandro Ferreira Bispo
 - Ana Karla de Lemos da Silva
 - Gisele Freitas de Brito
 - João Pedro Rufino Coelho
