@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ujr3WocRJKOSGUTB1aSIgOWdzSF5TPcZYRsfyDUCChi729Hi3uws7odQa7UrP2V
+\restrict y2j5DdUwp9eKy8dS7D0a7gjcFv9wwrdvlpbWYiWBISeHeMKoXrrhP7xMshgKCNC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Ubuntu 18.3-1.pgdg25.10+1)
@@ -36,10 +36,7 @@ INSERT INTO public.produto VALUES (1, 'Arroz Integral', 1, 1);
 INSERT INTO public.produto VALUES (3, 'Sabonete Líquido', 3, 3);
 INSERT INTO public.produto VALUES (2, 'Refrigerante', 2, 2);
 INSERT INTO public.produto VALUES (4, 'Feijão', 1, 1);
-INSERT INTO public.produto VALUES (5, 'asdasdas', 1, 1);
-INSERT INTO public.produto VALUES (6, 'asdasdas', 1, 1);
-INSERT INTO public.produto VALUES (7, 'asdasdas', 1, 1);
-INSERT INTO public.produto VALUES (8, 'asdasdas', 1, 1);
+INSERT INTO public.produto VALUES (9, 'Arroz Integral', 2, 1);
 
 
 --
@@ -51,7 +48,7 @@ INSERT INTO public.lote VALUES (3, 100, '2026-07-01', '2025-05-24', '2025-03-01'
 INSERT INTO public.lote VALUES (50, 30, '2026-06-11', '2026-06-06', '2026-06-06', 1);
 INSERT INTO public.lote VALUES (60, 40, '2026-06-16', '2026-06-06', '2026-06-06', 1);
 INSERT INTO public.lote VALUES (1, 999, '2026-06-11', '2025-05-22', '2025-01-10', 1);
-INSERT INTO public.lote VALUES (61, 100, '2026-12-31', '2026-06-08', '2025-01-01', NULL);
+INSERT INTO public.lote VALUES (61, 100, '2026-12-31', '2026-06-08', '2025-01-01', 1);
 
 
 --
@@ -84,41 +81,45 @@ INSERT INTO public.usuario VALUES (7, 'ONG Esperança', 'contato@ongesperanca.or
 INSERT INTO public.usuario VALUES (8, 'Casa do Bem', 'casadobem@gmail.com', NULL);
 INSERT INTO public.usuario VALUES (9, 'Instituto Solidário', 'instituto@solidario.org', NULL);
 INSERT INTO public.usuario VALUES (101, 'Carlos', 'carlos@email.com', NULL);
+INSERT INTO public.usuario VALUES (103, 'Escola de Aplicação da UPE - Campus Garanhuns', 'refeitorio.upe@upe.br', NULL);
+INSERT INTO public.usuario VALUES (104, 'Escola Municipal Professor Mário Matos', 'mariomatos@educacao.pe.gov.br', NULL);
+INSERT INTO public.usuario VALUES (105, 'Instituto Federal de Pernambuco - Campus Garanhuns', 'contato@ifpe.edu.br', NULL);
 
 
 --
 -- Data for Name: auditoria_lote; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public.auditoria_lote VALUES (1, '2026-05-22 22:36:17.362307+00', 'Criação de lote', '2026-05-22', '09:30:00', 1, 1, 'lote 1 sendo criado pelo usuario com id 1');
-INSERT INTO public.auditoria_lote VALUES (2, '2026-05-22 22:36:17.362307+00', 'Atualização de validade', '2026-05-22', '11:15:00', 2, 2, 'lote 2 sendo criado pelo id 2');
-INSERT INTO public.auditoria_lote VALUES (3, '2026-05-22 22:36:17.362307+00', 'Baixa no estoque', '2026-05-22', '14:45:00', 3, 3, 'lote 3 sendo criado pelo id 3');
-INSERT INTO public.auditoria_lote VALUES (4, '2026-06-06 02:19:43.436155+00', 'UPDATE', '2026-06-06', '02:19:43.436155', 1, 1, 'Alteração realizada no lote');
-INSERT INTO public.auditoria_lote VALUES (5, '2026-06-08 19:08:26.871365+00', 'INSERT', '2026-06-08', '19:08:26.871365', 1, 61, 'Alteração realizada no lote');
+INSERT INTO public.auditoria_lote VALUES (1, '2026-05-22 12:30:00+00', 'Criação de lote', 1, 1, 'lote 1 sendo criado pelo usuario com id 1');
+INSERT INTO public.auditoria_lote VALUES (2, '2026-05-22 14:15:00+00', 'Atualização de validade', 2, 2, 'lote 2 sendo criado pelo id 2');
+INSERT INTO public.auditoria_lote VALUES (3, '2026-05-22 17:45:00+00', 'Baixa no estoque', 3, 3, 'lote 3 sendo criado pelo id 3');
+INSERT INTO public.auditoria_lote VALUES (5, '2026-06-08 22:08:26.871365+00', 'INSERT', 1, 61, 'Lote cadastrado');
+INSERT INTO public.auditoria_lote VALUES (4, '2026-06-06 05:19:43.436155+00', 'UPDATE', 1, 1, 'Lote atualizado');
+INSERT INTO public.auditoria_lote VALUES (8, '2026-06-14 03:06:21.143704+00', 'UPDATE', 1, 61, 'Lote atualizado');
 
 
 --
 -- Data for Name: auditoria_produto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public.auditoria_produto VALUES (1, '2026-05-22 23:01:49.018274+00', 'UPDATE', 'Atualizacao de estoque', 1, 1, '2026-05-20', '19:45:00');
-INSERT INTO public.auditoria_produto VALUES (2, '2026-05-22 23:01:49.018274+00', 'INSERT', 'Novo produto cadastrado', 2, 2, '2026-05-21', '08:15:00');
-INSERT INTO public.auditoria_produto VALUES (3, '2026-05-22 23:01:49.018274+00', 'DELETE', 'Produto removido', 3, 3, '2026-05-22', '14:30:00');
-INSERT INTO public.auditoria_produto VALUES (4, '2026-06-06 02:40:17.292937+00', 'INSERT', 'Alteração realizada no produto', 1, 4, '2026-06-06', '02:40:17.292937');
-INSERT INTO public.auditoria_produto VALUES (5, '2026-06-08 16:25:40.711581+00', 'INSERT', 'Alteração realizada no produto', 1, 5, '2026-06-08', '16:25:40.711581');
-INSERT INTO public.auditoria_produto VALUES (6, '2026-06-08 16:25:44.209694+00', 'INSERT', 'Alteração realizada no produto', 1, 6, '2026-06-08', '16:25:44.209694');
-INSERT INTO public.auditoria_produto VALUES (7, '2026-06-08 16:32:23.231813+00', 'INSERT', 'Alteração realizada no produto', 1, 7, '2026-06-08', '16:32:23.231813');
-INSERT INTO public.auditoria_produto VALUES (8, '2026-06-08 16:32:24.178968+00', 'INSERT', 'Alteração realizada no produto', 1, 8, '2026-06-08', '16:32:24.178968');
+INSERT INTO public.auditoria_produto VALUES (1, '2026-05-20 22:45:00+00', 'UPDATE', 'Atualizacao de estoque', 1, 1);
+INSERT INTO public.auditoria_produto VALUES (2, '2026-05-21 11:15:00+00', 'INSERT', 'Novo produto cadastrado', 2, 2);
+INSERT INTO public.auditoria_produto VALUES (3, '2026-05-22 17:30:00+00', 'DELETE', 'Produto removido', 3, 3);
+INSERT INTO public.auditoria_produto VALUES (4, '2026-06-06 05:40:17.292937+00', 'INSERT', 'Alteração realizada no produto', 1, 4);
+INSERT INTO public.auditoria_produto VALUES (10, '2026-06-14 02:02:09.646857+00', 'INSERT', 'Alteração realizada no produto', 1, 9);
 
 
 --
 -- Data for Name: auditoria_usuario; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public.auditoria_usuario VALUES (1, 'UPDATE', '2026-05-20', 'Alteracao de email', 1, '09:02:01');
-INSERT INTO public.auditoria_usuario VALUES (2, 'DELETE', '2026-05-21', 'Remocao de usuario', 2, '08:56:00');
-INSERT INTO public.auditoria_usuario VALUES (3, 'INSERT', '2026-05-22', 'Cadastro de usuario', 3, '23:42:04');
-INSERT INTO public.auditoria_usuario VALUES (4, 'INSERT', '2026-06-06', 'Usuário cadastrado', 101, '02:24:57.030783');
+INSERT INTO public.auditoria_usuario VALUES (1, 'UPDATE', 'Alteracao de email', 1, '2026-05-20 12:02:01+00');
+INSERT INTO public.auditoria_usuario VALUES (2, 'DELETE', 'Remocao de usuario', 2, '2026-05-21 11:56:00+00');
+INSERT INTO public.auditoria_usuario VALUES (3, 'INSERT', 'Cadastro de usuario', 3, '2026-05-23 02:42:04+00');
+INSERT INTO public.auditoria_usuario VALUES (4, 'INSERT', 'Usuário cadastrado', 101, '2026-06-06 05:24:57+00');
+INSERT INTO public.auditoria_usuario VALUES (5, 'INSERT', 'Usuário cadastrado', 103, '2026-06-14 02:24:35.688989+00');
+INSERT INTO public.auditoria_usuario VALUES (6, 'INSERT', 'Usuário cadastrado', 104, '2026-06-14 02:27:32.09418+00');
+INSERT INTO public.auditoria_usuario VALUES (7, 'INSERT', 'Usuário cadastrado', 105, '2026-06-14 02:27:32.09418+00');
 
 
 --
@@ -137,7 +138,6 @@ INSERT INTO public.instituicao_receptora VALUES (9, '32424256665490', 'Institui�
 INSERT INTO public.doacao VALUES (1, '2026-05-22 20:53:35.672978+00', '2025-05-25', 'Pendente', 'Doação de alimentos não perecíveis', 7);
 INSERT INTO public.doacao VALUES (2, '2026-05-22 20:53:35.672978+00', '2025-05-26', 'Concluida', 'Entrega de verduras', 8);
 INSERT INTO public.doacao VALUES (3, '2026-05-22 20:53:35.672978+00', '2025-05-27', 'Coletada', 'Doacao de produtos refrigerados', 9);
-INSERT INTO public.doacao VALUES (6, '2026-06-08 19:08:26.871365+00', '2026-06-08', 'Pendente', 'Doação teste', NULL);
 
 
 --
@@ -214,6 +214,15 @@ INSERT INTO public.telefone_usuario OVERRIDING SYSTEM VALUE VALUES (10, 101, '87
 
 
 --
+-- Data for Name: usuario_escola; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+INSERT INTO public.usuario_escola OVERRIDING SYSTEM VALUE VALUES (4, 103, 'Escola de Aplicação da UPE - Campus Garanhuns', 'Escola', 'Estadual', '12345678000101', 'Garanhuns', 'PE', 'Rua Capitão Pedro Rodrigues, 105');
+INSERT INTO public.usuario_escola OVERRIDING SYSTEM VALUE VALUES (5, 104, 'Escola Municipal Professor Mário Matos', 'Escola', 'Municipal', '22345678000102', 'Garanhuns', 'PE', 'Rua José Mariano, 250');
+INSERT INTO public.usuario_escola OVERRIDING SYSTEM VALUE VALUES (6, 105, 'Instituto Federal de Pernambuco - Campus Garanhuns', 'Instituto', 'Federal', '32345678000103', 'Garanhuns', 'PE', 'Rodovia BR-423, Km 96');
+
+
+--
 -- Data for Name: usuario_mercado; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -242,21 +251,21 @@ SELECT pg_catalog.setval('public.alerta_validade_id_alerta_seq', 5, true);
 -- Name: auditoria_lote_id_auditoria_lote_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_lote_id_auditoria_lote_seq', 7, true);
+SELECT pg_catalog.setval('public.auditoria_lote_id_auditoria_lote_seq', 8, true);
 
 
 --
 -- Name: auditoria_produto_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_produto_id_seq', 8, true);
+SELECT pg_catalog.setval('public.auditoria_produto_id_seq', 10, true);
 
 
 --
 -- Name: auditoria_usuario_id_auditoria_usuario_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.auditoria_usuario_id_auditoria_usuario_seq', 4, true);
+SELECT pg_catalog.setval('public.auditoria_usuario_id_auditoria_usuario_seq', 7, true);
 
 
 --
@@ -319,7 +328,7 @@ SELECT pg_catalog.setval('public.produto_categoria_id_categoria_seq', 3, true);
 -- Name: produto_id_produto_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.produto_id_produto_seq', 8, true);
+SELECT pg_catalog.setval('public.produto_id_produto_seq', 9, true);
 
 
 --
@@ -337,10 +346,17 @@ SELECT pg_catalog.setval('public.telefone_usuario_id_telefone_seq', 10, true);
 
 
 --
+-- Name: usuario_escola_id_usuario_escola_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.usuario_escola_id_usuario_escola_seq', 6, true);
+
+
+--
 -- Name: usuario_id_usuario_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 101, true);
+SELECT pg_catalog.setval('public.usuario_id_usuario_seq', 105, true);
 
 
 --
@@ -361,5 +377,5 @@ SELECT pg_catalog.setval('public.usuario_pessoa_id_usuario_pessoa_seq', 3, true)
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ujr3WocRJKOSGUTB1aSIgOWdzSF5TPcZYRsfyDUCChi729Hi3uws7odQa7UrP2V
+\unrestrict y2j5DdUwp9eKy8dS7D0a7gjcFv9wwrdvlpbWYiWBISeHeMKoXrrhP7xMshgKCNC
 
