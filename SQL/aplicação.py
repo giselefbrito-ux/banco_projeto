@@ -1,89 +1,187 @@
-import streamlit as st
-from supabase import create_client
 import os
-from dotenv import load_dotenv
-import pandas as pd
-from datetime import datetime
+import re
+from datetime import date
 
-SUPABASE_URL="https://vongxbyisbowsqtfofxl.supabase.co"
-SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmd4Ynlpc2Jvd3NxdGZvZnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDI2MTYsImV4cCI6MjA5NDcxODYxNn0.blMGXBL1zhmwxsyNe3POU50wd1DgooP-85Q3ip3v7Hk"
+import pandas as pd
+import streamlit as st
+from dotenv import load_dotenv
+from supabase import create_client
+
+# =============================
+# Configuração Supabase
+# =============================
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vongxbyisbowsqtfofxl.supabase.co")
+SUPABASE_KEY = os.getenv(
+    "SUPABASE_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmd4Ynlpc2Jvd3NxdGZvZnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDI2MTYsImV4cCI6MjA5NDcxODYxNn0.blMGXBL1zhmwxsyNe3POU50wd1DgooP-85Q3ip3v7Hk",
+)
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env.")
+    st.stop()
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(
     page_title="SafeFood",
+    page_icon="🍎",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={"About": "SafeFood - Sistema de Controle de Doações"},
 )
 
-# FUNÇÕES AUXILIARES
-
-def buscar(tabela, ordem=None):
+# =============================
+# Funções auxiliares
+# =============================
+def listar_tabela(nome_tabela: str):
     try:
-        consulta = supabase.table(tabela).select("*")
-        if ordem:
-            consulta = consulta.order(ordem)
-        return consulta.execute().data or []
+        return supabase.table(nome_tabela).select("*").execute().data or []
     except Exception as erro:
-        st.error(f"Erro ao carregar {tabela}: {erro}")
+        st.error(f"Erro ao carregar {nome_tabela}: {erro}")
         return []
 
 
-def mostrar_tabela(dados, msg_vazio="Nenhum registro encontrado."):
+def inserir(tabela: str, dados: dict):
+    try:
+        supabase.table(tabela).insert(dados).execute()
+        st.success("Registro cadastrado com sucesso.")
+        st.rerun()
+    except Exception as erro:
+        st.error(f"Erro ao cadastrar em {tabela}: {erro}")
+
+
+def mostrar_dataframe(dados, mensagem="Nenhum registro encontrado."):
     if dados:
-        st.dataframe(pd.DataFrame(dados), use_container_width=True, hide_index=True)
+        df = preparar_dataframe_para_exibicao(dados)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.info(msg_vazio)
+        st.info(mensagem)
 
 
-def limpar_telefone(valor):
-    return re.sub(r"[^0-9]", "", valor or "")
+def mostrar_dataframe_filtrado(dados, chave_filtro: str, mensagem="Nenhum registro encontrado."):
+    if not dados:
+        st.info(mensagem)
+        return
+
+    df = preparar_dataframe_para_exibicao(dados)
+    termo = st.text_input("Filtrar registros", placeholder="Digite para buscar...", key=chave_filtro)
+
+    if termo:
+        termo = termo.lower()
+        mascara = df.astype(str).apply(
+            lambda linha: linha.str.lower().str.contains(termo, na=False).any(), axis=1
+        )
+        df = df[mascara]
+
+    if df.empty:
+        st.info("Nenhum registro encontrado com esse filtro.")
+    else:
+        st.dataframe(df, use_container_width=True, hide_index=True)
 
 
-def validar_telefone(valor):
-    return valor.isdigit() and len(valor) in (10, 11)
+def limpar_telefone(telefone: str) -> str:
+    return re.sub(r"[^0-9]", "", telefone or "")
 
 
-def opcoes_por_id(dados, id_coluna, texto_coluna=None):
-    opcoes = {}
-    for item in dados:
-        rotulo = str(item.get(id_coluna))
-        if texto_coluna and item.get(texto_coluna):
-            rotulo = f"{item.get(id_coluna)} - {item.get(texto_coluna)}"
-        opcoes[rotulo] = item.get(id_coluna)
-    return opcoes
+
+def mapa_por_id(tabela: str, id_coluna: str, nome_coluna: str):
+    dados = listar_tabela(tabela)
+    return {linha.get(id_coluna): linha.get(nome_coluna, "") for linha in dados}
 
 
-STATUS_DOACAO = ["Pendente", "Coletada", "Concluida"]
-STATUS_SOLICITACAO = ["Aberta", "Em analise", "Aprovada"]
-STATUS_COLETA = ["PENDENTE", "CONCLUÍDA"]
-STATUS_ALERTA = ["MONITORAMENTO", "ATENCAO", "URGENTE"]
-STATUS_INSTITUICAO = ["Ativa", "Inativa"]
-TIPOS_TELEFONE = ["principal", "whatsapp", "comercial", "residencial"]
+def mapas_de_nomes():
+    usuarios = listar_tabela("usuario")
+    categorias = listar_tabela("produto_categoria")
+    produtos = listar_tabela("produto")
+    lotes = listar_tabela("lote")
+    instituicoes = listar_tabela("instituicao_receptora")
+
+    mapa_usuarios = {u.get("id_usuario"): u.get("nome", "") for u in usuarios}
+    mapa_categorias = {c.get("id_categoria"): c.get("nome_categoria", "") for c in categorias}
+    mapa_produtos = {p.get("id_produto"): p.get("nome_produto", "") for p in produtos}
+
+    mapa_lotes = {}
+    for lote in lotes:
+        id_lote = lote.get("id_lote")
+        id_produto = lote.get("id_produto_lote")
+        nome_produto = mapa_produtos.get(id_produto, "Produto não identificado")
+        mapa_lotes[id_lote] = f"Lote {id_lote} - {nome_produto}"
+
+    mapa_instituicoes = {}
+    for inst in instituicoes:
+        id_receptor = inst.get("id_usuario_receptor")
+        nome_usuario = mapa_usuarios.get(id_receptor, "")
+        tipo = inst.get("tipo_instituicao", "")
+        cnpj = inst.get("cnpj", "")
+        if nome_usuario:
+            mapa_instituicoes[id_receptor] = nome_usuario
+        else:
+            mapa_instituicoes[id_receptor] = f"{tipo} - {cnpj}".strip(" -")
+
+    return {
+        "usuarios": mapa_usuarios,
+        "categorias": mapa_categorias,
+        "produtos": mapa_produtos,
+        "lotes": mapa_lotes,
+        "instituicoes": mapa_instituicoes,
+    }
 
 
-# ESTILO
+def preparar_dataframe_para_exibicao(dados):
+    df = pd.DataFrame(dados)
 
+    for coluna in df.columns:
+        if coluna == "created_at" or coluna.startswith("data_"):
+            convertido = pd.to_datetime(df[coluna], errors="coerce", format="mixed")
+            if convertido.notna().any():
+                if coluna == "created_at":
+                    df[coluna] = convertido.dt.strftime("%d/%m/%Y %H:%M:%S")
+                else:
+                    df[coluna] = convertido.dt.strftime("%d/%m/%Y")
+
+    mapas = mapas_de_nomes()
+    substituicoes = {
+        "id_usuario_escola": (None, None),
+        "id_usuario_afetado": ("usuario_afetado", mapas["usuarios"]),
+        "id_usuario_responsavel": ("usuario_responsavel", mapas["usuarios"]),
+        "id_usuario_receptor": ("instituicao_receptora", mapas["instituicoes"]),
+        "id_usuario_pessoa": ("usuario_pessoa", mapas["usuarios"]),
+        "id_usuario_mercado": ("usuario_mercado", mapas["usuarios"]),
+        "id_usuario_escola": ("usuario_escola", mapas["usuarios"]),
+        "id_categoria_produto": ("categoria", mapas["categorias"]),
+        "id_categoria": ("categoria", mapas["categorias"]),
+        "id_produto": ("produto", mapas["produtos"]),
+        "id_produto_lote": ("produto", mapas["produtos"]),
+        "id_lote": ("lote", mapas["lotes"]),
+        "id_lote_alerta": ("lote", mapas["lotes"]),
+    }
+
+    for coluna, config in substituicoes.items():
+        if coluna in df.columns:
+            novo_nome, mapa = config
+
+            if novo_nome is None:
+                df = df.drop(columns=[coluna])
+            else:
+                df[novo_nome] = df[coluna].map(mapa).fillna(df[coluna])
+                df = df.drop(columns=[coluna])
+
+    return df
+
+
+# =============================
+# Layout
+# =============================
 st.markdown(
     """
-<style>
-.card-container {
-    background-color: #111827;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-.card-container p { color: white !important; margin: 0; opacity: 0.95; }
-</style>
-""",
+    <style>
+    .main-title {font-size: 42px; font-weight: 800; margin-bottom: 0px;}
+    .subtitle {color: #999; margin-top: 0px;}
+    </style>
+    """,
     unsafe_allow_html=True,
 )
-
-st.title("🍎 SafeFood")
-st.caption("Sistema de Controle de Doações Alimentares")
-st.divider()
 
 with st.sidebar:
     st.markdown("### 📱 Navegação")
@@ -94,282 +192,348 @@ with st.sidebar:
             "👤 Usuários e Telefones",
             "🍚 Produtos",
             "📦 Lotes",
-            "🎁 Doações e Itens",
-            "🏬 Estoque e Movimentações",
+            "🎁 Doações",
+            "🏬 Estoque",
             "⚠️ Alertas",
             "📑 Auditorias",
             "👁️ Views",
         ],
     )
 
+st.markdown("<div class='main-title'>🍎 SafeFood</div>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle'>Sistema de Controle de Doações Alimentares</p>", unsafe_allow_html=True)
+st.divider()
 
-if "Dashboard" in menu:
-    produtos = buscar("produto")
-    lotes = buscar("lote")
-    estoque = buscar("estoque")
-    alertas = buscar("alerta_validade")
-    doacoes = buscar("doacao")
+# =============================
+# Dashboard
+# =============================
+if menu == "📊 Dashboard":
+    st.header("📊 Dashboard")
 
-    col1, col2, col3, col4 = st.columns(4)
-    cards = [
-        ("Produtos", len(produtos), "#3498db"),
-        ("Lotes", len(lotes), "#e74c3c"),
-        ("Estoque", len(estoque), "#2ecc71"),
-        ("Doações", len(doacoes), "#f39c12"),
-    ]
-    for col, (titulo, valor, cor) in zip([col1, col2, col3, col4], cards):
-        with col:
-            st.markdown(
-                f"""
-                <div class='card-container'>
-                    <p>{titulo}</p>
-                    <h2 style='color:{cor}; margin: 5px 0;'>{valor}</h2>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    produtos = listar_tabela("produto")
+    lotes = listar_tabela("lote")
+    estoque = listar_tabela("estoque")
+    alertas = listar_tabela("alerta_validade")
+    doacoes = listar_tabela("doacao")
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Produtos", len(produtos))
+    c2.metric("Lotes", len(lotes))
+    c3.metric("Estoque", len(estoque))
+    c4.metric("Alertas", len(alertas))
+    c5.metric("Doações", len(doacoes))
 
     st.subheader("Últimos lotes")
-    mostrar_tabela(lotes[:5])
+    mostrar_dataframe(lotes[-5:] if lotes else [])
 
-
-
-elif "Usuários" in menu:
+# =============================
+# Usuários e Telefones
+# =============================
+elif menu == "👤 Usuários e Telefones":
     st.header("👤 Usuários e Telefones")
+    aba_usuario, aba_pessoa, aba_mercado, aba_escola, aba_instituicao, aba_telefone = st.tabs(
+        ["Usuários", "Pessoas", "Mercados", "Escolas", "Instituições receptoras", "Telefones"]
+    )
 
-    usuarios = buscar("usuario", "id_usuario")
-    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
-
-    aba1, aba2 = st.tabs(["Usuários", "Telefones"])
-
-    with aba1:
+    with aba_usuario:
         st.subheader("Lista de usuários")
-        mostrar_tabela(usuarios)
+        mostrar_dataframe_filtrado(listar_tabela("usuario"), "filtro_usuario")
 
-    with aba2:
+    with aba_pessoa:
+        st.subheader("Usuários pessoa")
+        mostrar_dataframe_filtrado(listar_tabela("usuario_pessoa"), "filtro_usuario_pessoa")
+
+    with aba_mercado:
+        st.subheader("Usuários mercado")
+        mostrar_dataframe_filtrado(listar_tabela("usuario_mercado"), "filtro_usuario_mercado")
+
+    with aba_escola:
+        st.subheader("Usuários escola")
+        mostrar_dataframe_filtrado(listar_tabela("usuario_escola"), "filtro_usuario_escola")
+
+    with aba_instituicao:
+        st.subheader("Instituições receptoras")
+        instituicoes = listar_tabela("instituicao_receptora")
+        mostrar_dataframe_filtrado(instituicoes, "filtro_instituicao_receptora")
+
+    with aba_telefone:
         st.subheader("Cadastrar telefone do usuário")
-        with st.form("form_telefone"):
-            usuario_rotulo = st.selectbox("Usuário", list(op_usuarios.keys())) if op_usuarios else None
-            telefone_digitado = st.text_input("Telefone", placeholder="Ex: (87)99999-1111")
-            tipo_telefone = st.selectbox("Tipo", TIPOS_TELEFONE)
-            enviar = st.form_submit_button("Cadastrar telefone")
+        usuarios = listar_tabela("usuario")
 
-            if enviar:
-                telefone = limpar_telefone(telefone_digitado)
-                if not usuario_rotulo:
-                    st.warning("Cadastre um usuário antes de inserir telefone.")
-                elif not validar_telefone(telefone):
-                    st.error("Telefone inválido. Use apenas DDD + número, com 10 ou 11 dígitos.")
-                else:
-                    try:
-                        supabase.table("telefone_usuario").insert(
+        if not usuarios:
+            st.warning("Nenhum usuário foi carregado. Verifique RLS/policies da tabela usuario.")
+        else:
+            opcoes = [f"{u['id_usuario']} - {u.get('nome', '')}" for u in usuarios]
+            mapa = {f"{u['id_usuario']} - {u.get('nome', '')}": u["id_usuario"] for u in usuarios}
+
+            with st.form("form_telefone"):
+                usuario_escolhido = st.selectbox("Usuário", opcoes)
+                telefone = st.text_input("Telefone", placeholder="Ex: (87)99999-1111")
+                tipo = st.selectbox("Tipo", ["principal", "secundario", "whatsapp"])
+                enviar = st.form_submit_button("Cadastrar telefone")
+
+                if enviar:
+                    telefone_limpo = limpar_telefone(telefone)
+                    if len(telefone_limpo) not in (10, 11):
+                        st.warning("O telefone deve ter 10 ou 11 dígitos, incluindo DDD.")
+                    else:
+                        inserir(
+                            "telefone_usuario",
                             {
-                                "id_usuario": op_usuarios[usuario_rotulo],
-                                "telefone": telefone,
-                                "tipo_telefone": tipo_telefone,
-                            }
-                        ).execute()
-                        st.success("Telefone cadastrado com sucesso.")
-                    except Exception as erro:
-                        st.error(f"Erro ao cadastrar telefone: {erro}")
+                                "id_usuario": mapa[usuario_escolhido],
+                                "telefone": telefone_limpo,
+                                "tipo_telefone": tipo,
+                            },
+                        )
 
         st.subheader("Telefones cadastrados")
-        mostrar_tabela(buscar("telefone_usuario", "id_telefone"))
+        mostrar_dataframe_filtrado(listar_tabela("telefone_usuario"), "filtro_telefone")
 
-elif "Produtos" in menu:
+# =============================
+# Produtos
+# =============================
+elif menu == "🍚 Produtos":
     st.header("🍚 Gerenciamento de Produtos")
 
-    usuarios = buscar("usuario", "id_usuario")
-    categorias = buscar("produto_categoria", "id_categoria")
-    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
-    op_categorias = opcoes_por_id(categorias, "id_categoria", "nome_categoria")
+    categorias = listar_tabela("produto_categoria")
+    usuarios = listar_tabela("usuario")
 
     with st.form("form_produto"):
         nome = st.text_input("Nome do produto")
-        usuario_rotulo = st.selectbox("Usuário responsável", list(op_usuarios.keys())) if op_usuarios else None
-        categoria_rotulo = st.selectbox("Categoria", list(op_categorias.keys())) if op_categorias else None
+
+        if categorias:
+            opcoes_cat = [f"{c['id_categoria']} - {c.get('nome_categoria', '')}" for c in categorias]
+            mapa_cat = {f"{c['id_categoria']} - {c.get('nome_categoria', '')}": c["id_categoria"] for c in categorias}
+            categoria_escolhida = st.selectbox("Categoria", opcoes_cat)
+        else:
+            categoria_escolhida = None
+
+        if usuarios:
+            opcoes_user = [f"{u['id_usuario']} - {u.get('nome', '')}" for u in usuarios]
+            mapa_user = {f"{u['id_usuario']} - {u.get('nome', '')}": u["id_usuario"] for u in usuarios}
+            usuario_escolhido = st.selectbox("Usuário responsável", opcoes_user)
+        else:
+            usuario_escolhido = None
+
         enviar = st.form_submit_button("Cadastrar produto")
 
         if enviar:
-            if not nome or not usuario_rotulo or not categoria_rotulo:
-                st.warning("Preencha todos os campos.")
+            if not nome:
+                st.warning("Informe o nome do produto.")
+            elif not categoria_escolhida or not usuario_escolhido:
+                st.warning("É necessário existir categoria e usuário cadastrados.")
             else:
-                try:
-                    supabase.table("produto").insert(
-                        {
-                            "nome_produto": nome,
-                            "id_usuario": op_usuarios[usuario_rotulo],
-                            "id_categoria_produto": op_categorias[categoria_rotulo],
-                        }
-                    ).execute()
-                    st.success("Produto cadastrado com sucesso.")
-                except Exception as erro:
-                    st.error(f"Erro ao cadastrar produto: {erro}")
+                inserir(
+                    "produto",
+                    {
+                        "nome_produto": nome,
+                        "id_categoria_produto": mapa_cat[categoria_escolhida],
+                        "id_usuario": mapa_user[usuario_escolhido],
+                    },
+                )
 
     st.subheader("Produtos cadastrados")
-    mostrar_tabela(buscar("produto", "id_produto"))
+    mostrar_dataframe_filtrado(listar_tabela("produto"), "filtro_produtos")
 
-
-elif "Lotes" in menu:
+# =============================
+# Lotes
+# =============================
+elif menu == "📦 Lotes":
     st.header("📦 Gerenciamento de Lotes")
 
-    produtos = buscar("produto", "id_produto")
-    op_produtos = opcoes_por_id(produtos, "id_produto", "nome_produto")
-
+    produtos = listar_tabela("produto")
     with st.form("form_lote"):
-        produto_rotulo = st.selectbox("Produto", list(op_produtos.keys())) if op_produtos else None
+        if produtos:
+            opcoes_prod = [f"{p['id_produto']} - {p.get('nome_produto', '')}" for p in produtos]
+            mapa_prod = {f"{p['id_produto']} - {p.get('nome_produto', '')}": p["id_produto"] for p in produtos}
+            produto_escolhido = st.selectbox("Produto", opcoes_prod)
+        else:
+            produto_escolhido = None
+            st.warning("Cadastre produtos antes de registrar lotes.")
+
         quantidade = st.number_input("Quantidade", min_value=1, step=1)
         data_fabricacao = st.date_input("Data de fabricação")
-        data_entrada = st.date_input("Data de entrada")
+        data_entrada = st.date_input("Data de entrada", value=date.today())
         data_validade = st.date_input("Data de validade")
+
         enviar = st.form_submit_button("Registrar lote")
 
         if enviar:
-            if not produto_rotulo:
-                st.warning("Cadastre um produto antes de inserir lote.")
-            elif data_fabricacao > data_entrada:
-                st.error("A data de fabricação não pode ser posterior à data de entrada.")
-            elif data_entrada > data_validade:
-                st.error("A data de entrada não pode ser posterior à validade.")
+            if not produto_escolhido:
+                st.warning("Selecione um produto.")
+            elif data_validade < data_fabricacao:
+                st.warning("A data de validade não pode ser anterior à fabricação.")
             else:
-                try:
-                    supabase.table("lote").insert(
-                        {
-                            "quantidade": int(quantidade),
-                            "data_validade": str(data_validade),
-                            "data_entrada": str(data_entrada),
-                            "data_fabricacao": str(data_fabricacao),
-                            "id_produto_lote": op_produtos[produto_rotulo],
-                        }
-                    ).execute()
-                    st.success("Lote registrado. As triggers de estoque e validade serão executadas pelo banco.")
-                except Exception as erro:
-                    st.error(f"Erro ao registrar lote: {erro}")
+                inserir(
+                    "lote",
+                    {
+                        "quantidade": quantidade,
+                        "data_validade": str(data_validade),
+                        "data_entrada": str(data_entrada),
+                        "data_fabricacao": str(data_fabricacao),
+                        "id_produto_lote": mapa_prod[produto_escolhido],
+                    },
+                )
 
     st.subheader("Lotes registrados")
-    mostrar_tabela(buscar("lote", "id_lote"))
+    mostrar_dataframe_filtrado(listar_tabela("lote"), "filtro_lotes")
 
-elif "Doações" in menu:
-    st.header("🎁 Doações e Itens")
+# =============================
+# Doações e Itens de Doação
+# =============================
+elif menu == "🎁 Doações":
+    st.header("🎁 Doações")
+    aba_doacao, aba_item = st.tabs(["Doações", "Itens da doação"])
 
-    usuarios = buscar("usuario", "id_usuario")
-    doacoes = buscar("doacao", "id_doacao")
-    lotes = buscar("lote", "id_lote")
-    estoque = buscar("estoque", "id_estoque")
+    with aba_doacao:
+        instituicoes = listar_tabela("instituicao_receptora")
+        doacoes = listar_tabela("doacao")
 
-    op_usuarios = opcoes_por_id(usuarios, "id_usuario", "nome")
-    op_doacoes = opcoes_por_id(doacoes, "id_doacao", "descricao")
-    op_lotes = opcoes_por_id(lotes, "id_lote")
-
-    aba1, aba2, aba3 = st.tabs(["Cadastrar doação", "Adicionar item", "Listagem"])
-
-    with aba1:
+        st.subheader("Cadastrar doação")
         with st.form("form_doacao"):
+            if instituicoes:
+                nomes_usuarios = mapas_de_nomes()["usuarios"]
+                opcoes_inst = [
+                    f"{nomes_usuarios.get(i['id_usuario_receptor'], i['id_usuario_receptor'])} - {i.get('tipo_instituicao', '')} - {i.get('status', '')}"
+                    for i in instituicoes
+                ]
+                mapa_inst = {
+                    f"{nomes_usuarios.get(i['id_usuario_receptor'], i['id_usuario_receptor'])} - {i.get('tipo_instituicao', '')} - {i.get('status', '')}": i["id_usuario_receptor"]
+                    for i in instituicoes
+                }
+                inst_escolhida = st.selectbox("Instituição receptora", opcoes_inst)
+            else:
+                inst_escolhida = None
+                st.warning("Nenhuma instituição receptora foi carregada. Verifique RLS/policies da tabela instituicao_receptora.")
+
+            status = st.selectbox("Status", ["Pendente", "Coletada", "Concluida"])
             descricao = st.text_area("Descrição")
-            data_doacao = st.date_input("Data da doação")
-            status_doacao = st.selectbox("Status da doação", STATUS_DOACAO)
-            receptor_rotulo = st.selectbox("Usuário receptor", list(op_usuarios.keys())) if op_usuarios else None
+            data_doacao = st.date_input("Data da doação", value=date.today())
             enviar = st.form_submit_button("Cadastrar doação")
 
             if enviar:
-                if not descricao or not receptor_rotulo:
-                    st.warning("Preencha todos os campos.")
+                if not inst_escolhida:
+                    st.warning("Selecione uma instituição receptora.")
                 else:
-                    try:
-                        supabase.table("doacao").insert(
-                            {
-                                "data_doacao": str(data_doacao),
-                                "status_doacao": status_doacao,
-                                "descricao": descricao,
-                                "id_usuario_receptor": op_usuarios[receptor_rotulo],
-                            }
-                        ).execute()
-                        st.success("Doação cadastrada.")
-                    except Exception as erro:
-                        st.error(f"Erro ao cadastrar doação: {erro}")
+                    inserir(
+                        "doacao",
+                        {
+                            "data_doacao": str(data_doacao),
+                            "status_doacao": status,
+                            "descricao": descricao,
+                            "id_usuario_receptor": mapa_inst[inst_escolhida],
+                        },
+                    )
 
-    with aba2:
+        st.subheader("Doações cadastradas")
+        mostrar_dataframe_filtrado(doacoes, "filtro_doacoes")
+
+    with aba_item:
+        doacoes = listar_tabela("doacao")
+        estoques = listar_tabela("estoque")
+
         with st.form("form_item_doacao"):
-            doacao_rotulo = st.selectbox("Doação", list(op_doacoes.keys())) if op_doacoes else None
-            lote_rotulo = st.selectbox("Lote", list(op_lotes.keys())) if op_lotes else None
+            if doacoes:
+                nomes_inst = mapas_de_nomes()["instituicoes"]
+                opcoes_doacao = [
+                    f"Doação {d['id_doacao']} - {d.get('status_doacao', '')} - {nomes_inst.get(d.get('id_usuario_receptor'), 'Instituição não identificada')}"
+                    for d in doacoes
+                ]
+                mapa_doacao = {
+                    f"Doação {d['id_doacao']} - {d.get('status_doacao', '')} - {nomes_inst.get(d.get('id_usuario_receptor'), 'Instituição não identificada')}": d["id_doacao"]
+                    for d in doacoes
+                }
+                doacao_escolhida = st.selectbox("Doação", opcoes_doacao)
+            else:
+                doacao_escolhida = None
+                st.warning("Nenhuma doação foi carregada. Verifique RLS/policies da tabela doacao.")
+
+            if estoques:
+                nomes_lotes = mapas_de_nomes()["lotes"]
+                opcoes_estoque = [
+                    f"{nomes_lotes.get(e['id_lote'], 'Lote ' + str(e['id_lote']))} - disponível: {e.get('quantidade_atual', 0)}"
+                    for e in estoques
+                    if e.get("quantidade_atual", 0) > 0
+                ]
+                mapa_estoque = {
+                    f"{nomes_lotes.get(e['id_lote'], 'Lote ' + str(e['id_lote']))} - disponível: {e.get('quantidade_atual', 0)}": e
+                    for e in estoques
+                    if e.get("quantidade_atual", 0) > 0
+                }
+                lote_escolhido = st.selectbox("Lote em estoque", opcoes_estoque) if opcoes_estoque else None
+            else:
+                lote_escolhido = None
+                st.warning("Não há estoque disponível.")
+
             quantidade = st.number_input("Quantidade doada", min_value=1, step=1)
-            enviar = st.form_submit_button("Adicionar item à doação")
+            enviar = st.form_submit_button("Registrar item da doação")
 
             if enviar:
-                if not doacao_rotulo or not lote_rotulo:
-                    st.warning("É necessário ter uma doação e um lote cadastrados.")
+                if not doacao_escolhida or not lote_escolhido:
+                    st.warning("Selecione uma doação e um lote.")
                 else:
-                    id_lote = op_lotes[lote_rotulo]
-                    estoque_lote = next((e for e in estoque if e.get("id_lote") == id_lote), None)
-                    qtd_atual = int(estoque_lote.get("quantidade_atual", 0)) if estoque_lote else 0
-
-                    if quantidade > qtd_atual:
-                        st.error(f"Quantidade insuficiente no estoque. Disponível: {qtd_atual}")
+                    estoque_selecionado = mapa_estoque[lote_escolhido]
+                    qtd_disponivel = estoque_selecionado.get("quantidade_atual", 0)
+                    if quantidade > qtd_disponivel:
+                        st.warning("Quantidade maior que o estoque disponível.")
                     else:
-                        try:
-                            supabase.table("item_doacao").insert(
-                                {
-                                    "quantidade": int(quantidade),
-                                    "id_doacao": op_doacoes[doacao_rotulo],
-                                    "id_lote": id_lote,
-                                }
-                            ).execute()
-                            st.success("Item adicionado. A trigger registra SAIDA e atualiza o estoque.")
-                        except Exception as erro:
-                            st.error(f"Erro ao adicionar item: {erro}")
+                        inserir(
+                            "item_doacao",
+                            {
+                                "quantidade": quantidade,
+                                "id_doacao": mapa_doacao[doacao_escolhida],
+                                "id_lote": estoque_selecionado["id_lote"],
+                            },
+                        )
 
-    with aba3:
-        st.subheader("Doações")
-        mostrar_tabela(doacoes)
         st.subheader("Itens de doação")
-        mostrar_tabela(buscar("item_doacao", "id_item_doacao"))
+        mostrar_dataframe_filtrado(listar_tabela("item_doacao"), "filtro_item_doacao")
 
-elif "Estoque" in menu:
-    st.header("🏬 Estoque e Movimentações")
-    st.info("O estoque é controlado pelas triggers do banco. Use lotes e itens de doação para gerar entradas e saídas.")
+# =============================
+# Estoque
+# =============================
+elif menu == "🏬 Estoque":
+    st.header("🏬 Estoque")
+    st.info("O estoque é atualizado automaticamente pelos triggers do banco.")
+    mostrar_dataframe_filtrado(listar_tabela("estoque"), "filtro_estoque")
 
-    aba1, aba2 = st.tabs(["Estoque", "Movimentações"])
-    with aba1:
-        mostrar_tabela(buscar("estoque", "id_estoque"))
-    with aba2:
-        mostrar_tabela(buscar("movimentacao_estoque", "id_movimentacao"))
-
-
-elif "Alertas" in menu:
+# =============================
+# Alertas
+# =============================
+elif menu == "⚠️ Alertas":
     st.header("⚠️ Alertas de Validade")
-    dados = buscar("alerta_validade", "id_alerta")
-    if dados:
-        filtro = st.multiselect("Filtrar por status", STATUS_ALERTA, default=STATUS_ALERTA)
-        filtrado = [d for d in dados if d.get("status_alerta") in filtro]
-        mostrar_tabela(filtrado)
-    else:
-        st.success("Nenhum alerta de validade encontrado.")
+    mostrar_dataframe_filtrado(listar_tabela("alerta_validade"), "filtro_alerta")
 
-
-elif "Auditorias" in menu:
+# =============================
+# Auditorias
+# =============================
+elif menu == "📑 Auditorias":
     st.header("📑 Auditorias")
-    tipo = st.radio("Tipo", ["Usuário", "Lote", "Produto"], horizontal=True)
-    tabela = {
-        "Usuário": "auditoria_usuario",
-        "Lote": "auditoria_lote",
-        "Produto": "auditoria_produto",
-    }[tipo]
-    mostrar_tabela(buscar(tabela))
+    aba = st.selectbox("Tipo", ["Usuário", "Produto", "Lote"])
 
-elif "Views" in menu:
+    if aba == "Usuário":
+        mostrar_dataframe_filtrado(listar_tabela("auditoria_usuario"), "filtro_aud_usuario")
+    elif aba == "Produto":
+        mostrar_dataframe_filtrado(listar_tabela("auditoria_produto"), "filtro_aud_produto")
+    else:
+        mostrar_dataframe_filtrado(listar_tabela("auditoria_lote"), "filtro_aud_lote")
+
+# =============================
+# Views
+# =============================
+elif menu == "👁️ Views":
     st.header("👁️ Views do Banco")
+
     views = {
+        "Estoque atual por produto": "view_estoque_atual_produto",
+        "Ranking maiores doadores": "view_ranking_maiores_doadores",
         "Itens de cada doação": "v_itens_de_cada_doacao",
         "Auditoria geral": "view_auditoria_geral",
-        "Estoque atual": "view_estoque_atual",
-        "Ranking maior estoque": "view_ranking_maior_estoque",
     }
-    nome_view = st.selectbox("Selecione a view", list(views.keys()))
-    try:
-        dados = supabase.table(views[nome_view]).select("*").execute().data
-        mostrar_tabela(dados)
-    except Exception as erro:
-        st.error(f"Erro ao carregar view {views[nome_view]}: {erro}")
 
-st.markdown("---")
+    escolha = st.selectbox("Selecione a view", list(views.keys()))
+    nome_view = views[escolha]
+    mostrar_dataframe_filtrado(listar_tabela(nome_view), "filtro_views")
+
+st.divider()
 st.caption("SafeFood - Sistema de Controle de Doações Alimentares")
