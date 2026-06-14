@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict WZKRYjEDPDIP43duDbZxnqMg27Ki9tXHEK0PRmyZdYgAKK5jjeh3ll6BmfEXEf5
+\restrict pgfM3NvgalwBr1sEcbfCJcYiuK5u2XasTmRtioaBTK29nWbZ6QqL6dOugB1srBG
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Ubuntu 18.3-1.pgdg25.10+1)
@@ -200,54 +200,23 @@ $$;
 CREATE FUNCTION public.fn_auditoria_usuario() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-BEGIN 
-    IF TG_OP = 'INSERT' THEN 
-        INSERT INTO auditoria_usuario(
-          tipo_acao,
-          data,
-          hora,
-          descricao_acao,
-          id_usuario_afetado
-        )
-        VALUES(
-          'INSERT',
-          CURRENT_DATE, CURRENT_TIME,
-          'Usuário cadastrado',
-          NEW.id_usuario
-        );
-        RETURN NEW;
-    ELSIF TG_OP = 'UPDATE' THEN 
-           INSERT INTO auditoria_usuario(
-            tipo_acao,
-            data,
-            hora,
-            descricao_acao,
-            id_usuario_afetado
-           )
-           VALUES(
-              'UPDATE',
-              CURRENT_DATE, CURRENT_TIME,
-              'Usuário atualizado',
-              NEW.id_usuario
-           );
-           RETURN NEW;
-    ELSIF TG_OP = 'DELETE' THEN 
-        INSERT INTO auditoria_usuario(
-          tipo_acao,
-          data,
-          hora,
-          descricao_acao,
-          id_usuario_afetado
-        )      
-        VALUES(
-            'DELETE',
-            CURRENT_DATE, CURRENT_TIME,
-            'Usuário removido',
-            OLD.id_usuario
-        );
-        RETURN OLD;
-    END IF;
-    RETURN NULL;
+BEGIN
+    INSERT INTO auditoria_usuario (
+        tipo_acao,
+        descricao_acao,
+        id_usuario_afetado
+    )
+    VALUES (
+        TG_OP,
+        CASE
+            WHEN TG_OP = 'INSERT' THEN 'Usuário cadastrado'
+            WHEN TG_OP = 'UPDATE' THEN 'Usuário atualizado'
+            WHEN TG_OP = 'DELETE' THEN 'Usuário removido'
+        END,
+        COALESCE(NEW.id_usuario, OLD.id_usuario)
+    );
+
+    RETURN COALESCE(NEW, OLD);
 END;
 $$;
 
@@ -739,8 +708,6 @@ CREATE TABLE public.auditoria_lote (
     id_auditoria_lote bigint NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     tipo_acao text,
-    data date,
-    hora time without time zone,
     id_usuario integer,
     id_lote bigint,
     descricao_acao text
@@ -772,8 +739,7 @@ CREATE TABLE public.auditoria_produto (
     descricao_acao text,
     id_usuario_responsavel integer,
     id_produto integer,
-    data date,
-    hora time without time zone
+    CONSTRAINT chk_tipo_acao_auditoria_produto CHECK ((tipo_acao = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
 );
 
 
@@ -798,10 +764,10 @@ ALTER TABLE public.auditoria_produto ALTER COLUMN id_auditoria_produto ADD GENER
 CREATE TABLE public.auditoria_usuario (
     id_auditoria_usuario integer NOT NULL,
     tipo_acao text,
-    data date,
     descricao_acao text,
     id_usuario_afetado integer,
-    hora time without time zone
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT chk_tipo_acao_auditoria_usuario CHECK ((tipo_acao = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
 );
 
 
@@ -859,7 +825,7 @@ CREATE TABLE public.doacao (
     data_doacao date,
     status_doacao text,
     descricao text,
-    id_usuario_receptor integer,
+    id_usuario_receptor integer NOT NULL,
     CONSTRAINT chk_status_doacao CHECK ((status_doacao = ANY (ARRAY['Coletada'::text, 'Pendente'::text, 'Concluida'::text])))
 );
 
@@ -970,7 +936,7 @@ CREATE TABLE public.lote (
     data_validade date,
     data_entrada date,
     data_fabricacao date,
-    id_produto_lote integer
+    id_produto_lote integer NOT NULL
 );
 
 
@@ -1138,6 +1104,39 @@ CREATE TABLE public.usuario (
 
 
 --
+-- Name: usuario_escola; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.usuario_escola (
+    id_usuario_escola bigint NOT NULL,
+    id_usuario bigint NOT NULL,
+    nome_escola text NOT NULL,
+    tipo_escola text NOT NULL,
+    rede_ensino text NOT NULL,
+    cnpj text,
+    cidade text NOT NULL,
+    uf character(2) NOT NULL,
+    endereco text,
+    CONSTRAINT chk_rede_ensino CHECK ((rede_ensino = ANY (ARRAY['Municipal'::text, 'Estadual'::text, 'Federal'::text, 'Privada'::text]))),
+    CONSTRAINT chk_tipo_escola CHECK ((tipo_escola = ANY (ARRAY['Escola'::text, 'Universidade'::text, 'Instituto'::text])))
+);
+
+
+--
+-- Name: usuario_escola_id_usuario_escola_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.usuario_escola ALTER COLUMN id_usuario_escola ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.usuario_escola_id_usuario_escola_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: usuario_id_usuario_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -1228,28 +1227,25 @@ CREATE VIEW public.view_auditoria_geral AS
  SELECT auditoria_usuario.id_auditoria_usuario AS id_auditoria,
     'USUARIO'::text AS tipo_auditoria,
     auditoria_usuario.tipo_acao,
-    auditoria_usuario.data,
-    auditoria_usuario.hora,
+    auditoria_usuario.created_at,
     auditoria_usuario.descricao_acao,
-    auditoria_usuario.id_usuario_afetado
+    auditoria_usuario.id_usuario_afetado AS id_referencia
    FROM public.auditoria_usuario
 UNION ALL
  SELECT auditoria_produto.id_auditoria_produto AS id_auditoria,
     'PRODUTO'::text AS tipo_auditoria,
     auditoria_produto.tipo_acao,
-    auditoria_produto.data,
-    auditoria_produto.hora,
+    auditoria_produto.created_at,
     auditoria_produto.descricao_acao,
-    auditoria_produto.id_usuario_responsavel AS id_usuario_afetado
+    auditoria_produto.id_produto AS id_referencia
    FROM public.auditoria_produto
 UNION ALL
  SELECT auditoria_lote.id_auditoria_lote AS id_auditoria,
     'LOTE'::text AS tipo_auditoria,
     auditoria_lote.tipo_acao,
-    auditoria_lote.data,
-    auditoria_lote.hora,
+    auditoria_lote.created_at,
     auditoria_lote.descricao_acao,
-    auditoria_lote.id_lote AS id_usuario_afetado
+    auditoria_lote.id_lote AS id_referencia
    FROM public.auditoria_lote;
 
 
@@ -1431,6 +1427,22 @@ ALTER TABLE ONLY public.usuario
 
 ALTER TABLE ONLY public.usuario
     ADD CONSTRAINT usuario_email_key UNIQUE (email);
+
+
+--
+-- Name: usuario_escola usuario_escola_id_usuario_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario_escola
+    ADD CONSTRAINT usuario_escola_id_usuario_key UNIQUE (id_usuario);
+
+
+--
+-- Name: usuario_escola usuario_escola_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario_escola
+    ADD CONSTRAINT usuario_escola_pkey PRIMARY KEY (id_usuario_escola);
 
 
 --
@@ -1631,6 +1643,14 @@ ALTER TABLE ONLY public.estoque
 
 
 --
+-- Name: usuario_escola fk_usuario_escola_usuario; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.usuario_escola
+    ADD CONSTRAINT fk_usuario_escola_usuario FOREIGN KEY (id_usuario) REFERENCES public.usuario(id_usuario);
+
+
+--
 -- Name: instituicao_receptora instituicao_receptora_id_usuario_receptor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1727,68 +1747,8 @@ ALTER TABLE ONLY public.usuario_pessoa
 
 
 --
--- Name: coleta; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.coleta ENABLE ROW LEVEL SECURITY;
-
---
--- Name: doacao; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.doacao ENABLE ROW LEVEL SECURITY;
-
---
--- Name: instituicao_receptora; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.instituicao_receptora ENABLE ROW LEVEL SECURITY;
-
---
--- Name: item_doacao; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.item_doacao ENABLE ROW LEVEL SECURITY;
-
---
--- Name: movimentacao_estoque; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.movimentacao_estoque ENABLE ROW LEVEL SECURITY;
-
---
--- Name: solicitacao_doacao; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.solicitacao_doacao ENABLE ROW LEVEL SECURITY;
-
---
--- Name: telefone_usuario; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.telefone_usuario ENABLE ROW LEVEL SECURITY;
-
---
--- Name: usuario; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.usuario ENABLE ROW LEVEL SECURITY;
-
---
--- Name: usuario_mercado; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.usuario_mercado ENABLE ROW LEVEL SECURITY;
-
---
--- Name: usuario_pessoa; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.usuario_pessoa ENABLE ROW LEVEL SECURITY;
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict WZKRYjEDPDIP43duDbZxnqMg27Ki9tXHEK0PRmyZdYgAKK5jjeh3ll6BmfEXEf5
+\unrestrict pgfM3NvgalwBr1sEcbfCJcYiuK5u2XasTmRtioaBTK29nWbZ6QqL6dOugB1srBG
 
