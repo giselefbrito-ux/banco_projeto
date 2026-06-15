@@ -12,11 +12,8 @@ from supabase import create_client
 # =============================
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://vongxbyisbowsqtfofxl.supabase.co")
-SUPABASE_KEY = os.getenv(
-    "SUPABASE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvbmd4Ynlpc2Jvd3NxdGZvZnhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNDI2MTYsImV4cCI6MjA5NDcxODYxNn0.blMGXBL1zhmwxsyNe3POU50wd1DgooP-85Q3ip3v7Hk",
-)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     st.error("Configure SUPABASE_URL e SUPABASE_KEY no arquivo .env.")
@@ -84,6 +81,37 @@ def limpar_telefone(telefone: str) -> str:
     return re.sub(r"[^0-9]", "", telefone or "")
 
 
+def selecionar_com_busca(rotulo: str, opcoes: list, chave: str, placeholder="Digite para pesquisar..."):
+    """
+    Campo de busca + selectbox filtrado.
+    Evita precisar rolar listas grandes em selects.
+    Retorna a opção selecionada ou None.
+    """
+    if not opcoes:
+        return None
+
+    termo = st.text_input(
+        f"Pesquisar {rotulo.lower()}",
+        placeholder=placeholder,
+        key=f"busca_{chave}",
+    ).strip().lower()
+
+    if termo:
+        opcoes_filtradas = [op for op in opcoes if termo in str(op).lower()]
+    else:
+        opcoes_filtradas = opcoes[:30]
+
+    if not opcoes_filtradas:
+        st.warning("Nenhum resultado encontrado.")
+        return None
+
+    return st.selectbox(
+        rotulo,
+        opcoes_filtradas,
+        key=f"select_{chave}",
+    )
+
+
 
 def mapa_por_id(tabela: str, id_coluna: str, nome_coluna: str):
     dados = listar_tabela(tabela)
@@ -131,6 +159,12 @@ def mapas_de_nomes():
 def preparar_dataframe_para_exibicao(dados):
     df = pd.DataFrame(dados)
 
+    if df.empty:
+        return df
+
+    # =============================
+    # Formatação de datas
+    # =============================
     for coluna in df.columns:
         if coluna == "created_at" or coluna.startswith("data_"):
             convertido = pd.to_datetime(df[coluna], errors="coerce", format="mixed")
@@ -140,9 +174,12 @@ def preparar_dataframe_para_exibicao(dados):
                 else:
                     df[coluna] = convertido.dt.strftime("%d/%m/%Y")
 
+    # =============================
+    # Substituição de IDs por nomes
+    # =============================
     mapas = mapas_de_nomes()
     substituicoes = {
-        "id_usuario_escola": (None, None),
+        "id_usuario": ("usuario", mapas["usuarios"]),
         "id_usuario_afetado": ("usuario_afetado", mapas["usuarios"]),
         "id_usuario_responsavel": ("usuario_responsavel", mapas["usuarios"]),
         "id_usuario_receptor": ("instituicao_receptora", mapas["instituicoes"]),
@@ -157,15 +194,81 @@ def preparar_dataframe_para_exibicao(dados):
         "id_lote_alerta": ("lote", mapas["lotes"]),
     }
 
-    for coluna, config in substituicoes.items():
+    for coluna, (novo_nome, mapa) in substituicoes.items():
         if coluna in df.columns:
-            novo_nome, mapa = config
+            df[novo_nome] = df[coluna].map(mapa).fillna(df[coluna])
+            df = df.drop(columns=[coluna])
 
-            if novo_nome is None:
-                df = df.drop(columns=[coluna])
-            else:
-                df[novo_nome] = df[coluna].map(mapa).fillna(df[coluna])
-                df = df.drop(columns=[coluna])
+    # =============================
+    #  n sei onde ta o erro então bolei isso aqui
+    # =============================
+    pares_redundantes = [
+        ("nome_produto", "produto"),
+        ("nome_categoria", "categoria"),
+        ("nome_escola", "usuario_escola"),
+        ("nome", "usuario"),
+        ("nome", "usuario_afetado"),
+        ("nome", "usuario_responsavel"),
+        ("nome", "usuario_pessoa"),
+        ("nome", "usuario_mercado"),
+        ("nome", "instituicao_receptora"),
+    ]
+
+    for coluna_original, coluna_repetida in pares_redundantes:
+        if coluna_original in df.columns and coluna_repetida in df.columns:
+            df = df.drop(columns=[coluna_repetida])
+
+ 
+    colunas_para_remover = set()
+    colunas = list(df.columns)
+
+    for i, col1 in enumerate(colunas):
+        if col1 in colunas_para_remover:
+            continue
+
+        for col2 in colunas[i + 1:]:
+            if col2 in colunas_para_remover:
+                continue
+
+            try:
+                serie1 = df[col1].astype(str).fillna("")
+                serie2 = df[col2].astype(str).fillna("")
+
+                if serie1.equals(serie2):
+                    preferir_remover = [
+                        "usuario", "usuario_afetado", "usuario_responsavel",
+                        "usuario_pessoa", "usuario_mercado", "usuario_escola",
+                        "instituicao_receptora", "produto", "categoria", "lote"
+                    ]
+
+                    if col2 in preferir_remover:
+                        colunas_para_remover.add(col2)
+                    elif col1 in preferir_remover:
+                        colunas_para_remover.add(col1)
+                    else:
+                        colunas_para_remover.add(col2)
+            except Exception:
+                pass
+
+    if colunas_para_remover:
+        df = df.drop(columns=list(colunas_para_remover), errors="ignore")
+
+    df = df.rename(
+        columns={
+            "nome_produto": "produto",
+            "nome_categoria": "categoria",
+            "nome_escola": "escola",
+            "tipo_escola": "tipo",
+            "rede_ensino": "rede",
+            "quantidade_atual": "quantidade",
+            "status_doacao": "status",
+            "status_coleta": "status",
+            "status_alerta": "status",
+        }
+    )
+
+    if "lote" in df.columns and "produto" in df.columns:
+        df = df.drop(columns=["produto"])
 
     return df
 
@@ -267,7 +370,7 @@ elif menu == "👤 Usuários e Telefones":
             mapa = {f"{u['id_usuario']} - {u.get('nome', '')}": u["id_usuario"] for u in usuarios}
 
             with st.form("form_telefone"):
-                usuario_escolhido = st.selectbox("Usuário", opcoes)
+                usuario_escolhido = selecionar_com_busca("Usuário", opcoes, "usuario_telefone")
                 telefone = st.text_input("Telefone", placeholder="Ex: (87)99999-1111")
                 tipo = st.selectbox("Tipo", ["principal", "secundario", "whatsapp"])
                 enviar = st.form_submit_button("Cadastrar telefone")
@@ -304,14 +407,14 @@ elif menu == "🍚 Produtos":
         if categorias:
             opcoes_cat = [f"{c['id_categoria']} - {c.get('nome_categoria', '')}" for c in categorias]
             mapa_cat = {f"{c['id_categoria']} - {c.get('nome_categoria', '')}": c["id_categoria"] for c in categorias}
-            categoria_escolhida = st.selectbox("Categoria", opcoes_cat)
+            categoria_escolhida = selecionar_com_busca("Categoria", opcoes_cat, "categoria_produto")
         else:
             categoria_escolhida = None
 
         if usuarios:
             opcoes_user = [f"{u['id_usuario']} - {u.get('nome', '')}" for u in usuarios]
             mapa_user = {f"{u['id_usuario']} - {u.get('nome', '')}": u["id_usuario"] for u in usuarios}
-            usuario_escolhido = st.selectbox("Usuário responsável", opcoes_user)
+            usuario_escolhido = selecionar_com_busca("Usuário responsável", opcoes_user, "usuario_responsavel_produto")
         else:
             usuario_escolhido = None
 
@@ -346,7 +449,7 @@ elif menu == "📦 Lotes":
         if produtos:
             opcoes_prod = [f"{p['id_produto']} - {p.get('nome_produto', '')}" for p in produtos]
             mapa_prod = {f"{p['id_produto']} - {p.get('nome_produto', '')}": p["id_produto"] for p in produtos}
-            produto_escolhido = st.selectbox("Produto", opcoes_prod)
+            produto_escolhido = selecionar_com_busca("Produto", opcoes_prod, "produto_lote")
         else:
             produto_escolhido = None
             st.warning("Cadastre produtos antes de registrar lotes.")
@@ -401,7 +504,7 @@ elif menu == "🎁 Doações":
                     f"{nomes_usuarios.get(i['id_usuario_receptor'], i['id_usuario_receptor'])} - {i.get('tipo_instituicao', '')} - {i.get('status', '')}": i["id_usuario_receptor"]
                     for i in instituicoes
                 }
-                inst_escolhida = st.selectbox("Instituição receptora", opcoes_inst)
+                inst_escolhida = selecionar_com_busca("Instituição receptora", opcoes_inst, "instituicao_doacao")
             else:
                 inst_escolhida = None
                 st.warning("Nenhuma instituição receptora foi carregada. Verifique RLS/policies da tabela instituicao_receptora.")
@@ -443,7 +546,7 @@ elif menu == "🎁 Doações":
                     f"Doação {d['id_doacao']} - {d.get('status_doacao', '')} - {nomes_inst.get(d.get('id_usuario_receptor'), 'Instituição não identificada')}": d["id_doacao"]
                     for d in doacoes
                 }
-                doacao_escolhida = st.selectbox("Doação", opcoes_doacao)
+                doacao_escolhida = selecionar_com_busca("Doação", opcoes_doacao, "doacao_item")
             else:
                 doacao_escolhida = None
                 st.warning("Nenhuma doação foi carregada. Verifique RLS/policies da tabela doacao.")
@@ -460,7 +563,7 @@ elif menu == "🎁 Doações":
                     for e in estoques
                     if e.get("quantidade_atual", 0) > 0
                 }
-                lote_escolhido = st.selectbox("Lote em estoque", opcoes_estoque) if opcoes_estoque else None
+                lote_escolhido = selecionar_com_busca("Lote em estoque", opcoes_estoque, "lote_estoque") if opcoes_estoque else None
             else:
                 lote_escolhido = None
                 st.warning("Não há estoque disponível.")
@@ -509,7 +612,7 @@ elif menu == "⚠️ Alertas":
 # =============================
 elif menu == "📑 Auditorias":
     st.header("📑 Auditorias")
-    aba = st.selectbox("Tipo", ["Usuário", "Produto", "Lote"])
+    aba = selecionar_com_busca("Tipo", ["Usuário", "Produto", "Lote"], "auditoria_tipo")
 
     if aba == "Usuário":
         mostrar_dataframe_filtrado(listar_tabela("auditoria_usuario"), "filtro_aud_usuario")
@@ -531,7 +634,7 @@ elif menu == "👁️ Views":
         "Auditoria geral": "view_auditoria_geral",
     }
 
-    escolha = st.selectbox("Selecione a view", list(views.keys()))
+    escolha = selecionar_com_busca("Selecione a view", list(views.keys()), "views")
     nome_view = views[escolha]
     mostrar_dataframe_filtrado(listar_tabela(nome_view), "filtro_views")
 
