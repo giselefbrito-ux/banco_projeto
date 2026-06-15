@@ -240,6 +240,8 @@ Link do documento com a população do banco:
 - Gisele Freitas de Brito
 - João Pedro Rufino Coelho
 
+**Professor Orientador:** Carlos Melo
+
 **Disciplina:** Banco de Dados
 
 **Curso:** Licenciatura em Computação
